@@ -26,7 +26,7 @@ export default function AuthShell({
           }`}
         >
           {/* Left Panel */}
-          <section className="flex items-center justify-center p-6 md:p-10">
+          <section className="flex items-center justify-center bg-slate-50 p-6 md:p-10">
             <div className="w-full max-w-md">{left}</div>
           </section>
 
