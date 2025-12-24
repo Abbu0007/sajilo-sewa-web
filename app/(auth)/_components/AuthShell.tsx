@@ -31,7 +31,7 @@ export default function AuthShell({
           </section>
 
           {/* Right Panel */}
-          <section className="relative flex items-center justify-center bg-gradient-to-b from-blue-600 to-blue-800 p-6 md:p-10">
+          <section className="relative hidden md:flex items-center justify-center bg-gradient-to-b from-blue-600 to-blue-800 p-6 md:p-10">
             <div className="w-full max-w-md text-center text-white">
               <div className="mx-auto mb-6 w-full overflow-hidden rounded-xl bg-white/10 p-6">
                 <div className="relative mx-auto aspect-[4/3] w-full">
