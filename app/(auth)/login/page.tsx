@@ -20,7 +20,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       left={
-        <div>
+        <div className="space-y-1">
           <HomeBadgeIcon />
           <h1 className="mt-4 text-center text-2xl font-bold">Sajilo Sewa</h1>
           <p className="mt-1 text-center text-sm text-slate-600">

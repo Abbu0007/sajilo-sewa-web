@@ -18,7 +18,7 @@ export default function AuthShell({
   reverseOnMobile?: boolean;
 }) {
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-8">
+    <main className="min-h-screen bg-slate-100 px-4 py-6 md:p-8">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-2xl bg-white shadow-lg">
         <div
           className={`grid min-h-[650px] grid-cols-1 md:grid-cols-2 ${
