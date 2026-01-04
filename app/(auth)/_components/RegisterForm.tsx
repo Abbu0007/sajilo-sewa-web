@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterValues } from "@/lib/validators/auth";
@@ -39,7 +40,7 @@ export default function RegisterForm() {
   const {
     register,
     setValue,
-    watch,
+    getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
@@ -52,23 +53,44 @@ export default function RegisterForm() {
       password: "",
       confirmPassword: "",
       role: "book",
+      profession: "",
       agree: false,
     },
   });
 
-  const role = watch("role");
+  
+  const [roleUI, setRoleUI] = useState<"book" | "provide">("book");
 
-  const onSubmit = async (values: RegisterValues) => {
-    console.log("REGISTER:", values);
-    alert("Account created (dummy). Now you can login.");
+  useEffect(() => {
+    const initial = getValues("role");
+    setRoleUI(initial === "provide" ? "provide" : "book");
+  }, [getValues]);
+
+  const setRole = (value: "book" | "provide") => {
+
+    setRoleUI(value);
+
+    setValue("role", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+
+    if (value === "book") {
+      setValue("profession", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
   };
 
   const roleBtn = (value: "book" | "provide", label: string) => {
-    const active = role === value;
+    const active = roleUI === value;
     return (
       <button
         type="button"
-        onClick={() => setValue("role", value, { shouldValidate: true })}
+        onClick={() => setRole(value)}
         className={[
           "flex-1 rounded-lg border px-3 py-2 text-xs font-medium",
           active
@@ -81,8 +103,15 @@ export default function RegisterForm() {
     );
   };
 
+  const onSubmit = async (values: RegisterValues) => {
+    console.log("REGISTER:", values);
+    alert("Account created (dummy). Now you can login.");
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+      <input type="hidden" {...register("role")} />
+
       <div className="grid grid-cols-2 gap-3">
         <TextInput
           label="First Name"
@@ -109,7 +138,7 @@ export default function RegisterForm() {
 
       <TextInput
         label="Phone Number"
-        placeholder="+977 98XXXXXXXX"
+        placeholder="98XXXXXXXX (10 digits)"
         leftIcon={<PhoneIcon />}
         error={errors.phone?.message}
         registration={register("phone")}
@@ -117,7 +146,7 @@ export default function RegisterForm() {
 
       <TextInput
         label="Password"
-        placeholder="Create password"
+        placeholder="Min 7 chars, 1 capital, 1 number, 1 special"
         type="password"
         leftIcon={<LockIcon />}
         error={errors.password?.message}
@@ -141,6 +170,15 @@ export default function RegisterForm() {
         </div>
       </div>
 
+      {roleUI === "provide" && (
+        <TextInput
+          label="Profession"
+          placeholder="e.g. Plumber, Electrician, Cleaner"
+          error={errors.profession?.message}
+          registration={register("profession")}
+        />
+      )}
+
       <label className="flex items-start gap-2 text-xs text-slate-600">
         <input type="checkbox" className="mt-0.5 h-3.5 w-3.5" {...register("agree")} />
         <span>
@@ -149,9 +187,8 @@ export default function RegisterForm() {
           <span className="text-blue-600 underline">Privacy Policy</span>
         </span>
       </label>
-      {errors.agree?.message && (
-        <p className="text-xs text-red-600">{errors.agree.message}</p>
-      )}
+
+      {errors.agree?.message && <p className="text-xs text-red-600">{errors.agree.message}</p>}
 
       <PrimaryButton disabled={isSubmitting}>
         {isSubmitting ? "Creating..." : "Create Account"}
