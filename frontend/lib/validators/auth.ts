@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  // Keeping login simple, but aligning min length to 7 is safer with your new rule
   password: z.string().min(7, "Password must be at least 7 characters"),
   remember: z.boolean().optional(),
 });
@@ -11,11 +10,7 @@ export type LoginValues = z.infer<typeof loginSchema>;
 
 const roleEnum = z.enum(["book", "provide"] as const);
 
-// Password rules:
-// - min 7 chars
-// - at least 1 uppercase
-// - at least 1 number
-// - at least 1 special character
+
 const passwordSchema = z
   .string()
   .min(7, "Password must be at least 7 characters")
@@ -39,7 +34,6 @@ export const registerSchema = z
 
     role: roleEnum,
 
-    // Only required when role === "provide"
     profession: z.string().optional(),
 
     agree: z.boolean().refine((v) => v === true, "You must agree to the terms"),
