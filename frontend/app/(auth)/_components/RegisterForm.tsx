@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, RegisterValues } from "@/lib/validators/auth";
 import TextInput from "@/components/ui/TextInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { registerSchema, RegisterData } from "../schema";
+import { registerAction } from "@/lib/actions/auth-actions";
 
 function MailIcon() {
   return (
@@ -37,13 +40,16 @@ function LockIcon() {
 }
 
 export default function RegisterForm() {
+  const router = useRouter();
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const {
     register,
     setValue,
     getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterValues>({
+  } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: "",
@@ -52,22 +58,19 @@ export default function RegisterForm() {
       phone: "",
       password: "",
       confirmPassword: "",
-      role: "book",
+      role: "client",
       profession: "",
-      agree: false,
     },
   });
 
-  
-  const [roleUI, setRoleUI] = useState<"book" | "provide">("book");
+  const [roleUI, setRoleUI] = useState<"client" | "provider">("client");
 
   useEffect(() => {
     const initial = getValues("role");
-    setRoleUI(initial === "provide" ? "provide" : "book");
+    setRoleUI(initial === "provider" ? "provider" : "client");
   }, [getValues]);
 
-  const setRole = (value: "book" | "provide") => {
-
+  const setRole = (value: "client" | "provider") => {
     setRoleUI(value);
 
     setValue("role", value, {
@@ -76,7 +79,7 @@ export default function RegisterForm() {
       shouldTouch: true,
     });
 
-    if (value === "book") {
+    if (value === "client") {
       setValue("profession", "", {
         shouldValidate: true,
         shouldDirty: true,
@@ -85,7 +88,7 @@ export default function RegisterForm() {
     }
   };
 
-  const roleBtn = (value: "book" | "provide", label: string) => {
+  const roleBtn = (value: "client" | "provider", label: string) => {
     const active = roleUI === value;
     return (
       <button
@@ -93,9 +96,7 @@ export default function RegisterForm() {
         onClick={() => setRole(value)}
         className={[
           "flex-1 rounded-lg border px-3 py-2 text-xs font-medium",
-          active
-            ? "border-blue-600 bg-blue-50 text-blue-700"
-            : "border-slate-200 bg-white text-slate-700",
+          active ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700",
         ].join(" ")}
       >
         {label}
@@ -103,9 +104,24 @@ export default function RegisterForm() {
     );
   };
 
-  const onSubmit = async (values: RegisterValues) => {
-    console.log("REGISTER:", values);
-    alert("Account created (dummy). Now you can login.");
+  const onSubmit = async (values: RegisterData) => {
+    setApiError(null);
+    try {
+      await registerAction({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        phone: values.phone, // normalized in action (10 digits)
+        role: values.role,
+        profession: values.role === "provider" ? values.profession : undefined,
+        password: values.password,
+      });
+
+      // After register → go login
+      router.push("/login");
+    } catch (e: any) {
+      setApiError(e?.message ?? "Register failed");
+    }
   };
 
   return (
@@ -165,12 +181,12 @@ export default function RegisterForm() {
       <div className="space-y-2">
         <p className="text-xs font-medium text-slate-700">I want to</p>
         <div className="flex gap-3">
-          {roleBtn("book", "Book Services")}
-          {roleBtn("provide", "Provide Services")}
+          {roleBtn("client", "Book Services")}
+          {roleBtn("provider", "Provide Services")}
         </div>
       </div>
 
-      {roleUI === "provide" && (
+      {roleUI === "provider" && (
         <TextInput
           label="Profession"
           placeholder="e.g. Plumber, Electrician, Cleaner"
@@ -179,16 +195,7 @@ export default function RegisterForm() {
         />
       )}
 
-      <label className="flex items-start gap-2 text-xs text-slate-600">
-        <input type="checkbox" className="mt-0.5 h-3.5 w-3.5" {...register("agree")} />
-        <span>
-          I agree to the{" "}
-          <span className="text-blue-600 underline">Terms of Service</span> and{" "}
-          <span className="text-blue-600 underline">Privacy Policy</span>
-        </span>
-      </label>
-
-      {errors.agree?.message && <p className="text-xs text-red-600">{errors.agree.message}</p>}
+      {apiError && <p className="text-xs text-red-600">{apiError}</p>}
 
       <PrimaryButton disabled={isSubmitting}>
         {isSubmitting ? "Creating..." : "Create Account"}
