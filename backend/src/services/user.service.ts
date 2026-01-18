@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { UserRepository } from "../repositories/user.repository";
 import { HttpError } from "../errors/http-error";
 import { config } from "../config";
-import { PublicUser } from "../types/user.type";
+import { PublicUser, UserRole } from "../types/user.type";
 
 export class UserService {
   constructor(private repo: UserRepository) {}
@@ -15,7 +15,7 @@ export class UserService {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      role: user.role,
+      role: user.role as UserRole,
       profession: user.profession,
     };
   }
@@ -25,7 +25,7 @@ export class UserService {
     lastName: string;
     email: string;
     phone: string;
-    role: "book" | "provide";
+    role: "client" | "provider"; 
     profession?: string;
     password: string;
   }) {
