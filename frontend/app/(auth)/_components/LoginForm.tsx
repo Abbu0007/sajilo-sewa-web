@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginValues } from "@/lib/validators/auth";
 import TextInput from "@/components/ui/TextInput";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SocialButtons from "./SocialButtons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import { loginSchema, LoginData } from "../schema";
+import { loginAction } from "@/lib/actions/auth-actions";
 
 /* Icons */
 function MailIcon() {
@@ -38,7 +40,11 @@ function EyeIcon({ open }: { open: boolean }) {
       ) : (
         <>
           <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" />
-          <path d="M2 12s4-7 10-7c2.2 0 4.1.7 5.7 1.7M22 12s-4 7-10 7c-2.2 0-4.1-.7-5.7-1.7" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="M2 12s4-7 10-7c2.2 0 4.1.7 5.7 1.7M22 12s-4 7-10 7c-2.2 0-4.1-.7-5.7-1.7"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
         </>
       )}
     </svg>
@@ -48,19 +54,33 @@ function EyeIcon({ open }: { open: boolean }) {
 export default function LoginForm() {
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginValues>({
+  } = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "", remember: false },
+    defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = async (values: LoginValues) => {
-    console.log("LOGIN:", values);
-    router.push("/auth/dashboard");
+  const onSubmit = async (values: LoginData) => {
+    setApiError(null);
+    try {
+      const data = await loginAction({
+        email: values.email,
+        password: values.password,
+      });
+
+      const role = data?.user?.role;
+
+      // ✅ role-based navigation idea
+      if (role === "provider") router.push("/provider/dashboard");
+      else router.push("/client/dashboard");
+    } catch (e: any) {
+      setApiError(e?.message ?? "Login failed");
+    }
   };
 
   return (
@@ -88,16 +108,7 @@ export default function LoginForm() {
         registration={register("password")}
       />
 
-      <div className="flex items-center justify-between text-xs">
-        <label className="flex items-center gap-2 text-slate-600">
-          <input type="checkbox" className="h-3.5 w-3.5" {...register("remember")} />
-          Remember me
-        </label>
-
-        <button type="button" className="font-medium text-blue-600 hover:underline">
-          Forgot password?
-        </button>
-      </div>
+      {apiError && <p className="text-xs text-red-600">{apiError}</p>}
 
       <PrimaryButton disabled={isSubmitting}>
         {isSubmitting ? "Signing In..." : "Sign In"}
