@@ -10,7 +10,7 @@ export class UserRepository {
     lastName: string;
     email: string;
     phone: string;
-    role: "book" | "provide";
+    role: "client" | "provider" | "admin";
     profession?: string;
     passwordHash: string;
   }) {
