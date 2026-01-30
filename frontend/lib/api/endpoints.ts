@@ -1,4 +1,9 @@
 export const ENDPOINTS = {
-  register: "/api/auth/register",
+  // existing
   login: "/api/auth/login",
-} as const;
+  register: "/api/auth/register",
+
+  // ✅ admin users
+  adminUsers: "/api/admin/users",
+  adminUserById: (id: string) => `/api/admin/users/${id}`,
+};

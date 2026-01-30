@@ -16,7 +16,7 @@ export async function setAuthCookies(token: string, user: AuthUserCookie) {
   const jar = await cookies(); // ✅ FIX (await)
 
   jar.set(TOKEN_KEY, token, {
-    httpOnly: true,
+    httpOnly: process.env.NODE_ENV === "production",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
@@ -33,7 +33,7 @@ export async function setAuthCookies(token: string, user: AuthUserCookie) {
 }
 
 export async function clearAuthCookies() {
-  const jar = await cookies(); // ✅ FIX (await)
+  const jar = await cookies(); 
   jar.delete(TOKEN_KEY);
   jar.delete(USER_KEY);
 }
