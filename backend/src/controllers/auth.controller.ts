@@ -23,4 +23,23 @@ export class AuthController {
     const result = await this.service.login(parsed.data);
     res.status(200).json({ message: "Login successful", ...result });
   };
+
+  updateById = async (req: Request, res: Response) => {
+    const id = req.params.id;
+
+    const avatarUrl = (req as any).file
+      ? `${req.protocol}://${req.get("host")}/uploads/avatars/${(req as any).file.filename}`
+      : undefined;
+
+    const result = await this.service.updateById(
+      id,
+      (req as any).user, 
+      {
+        ...req.body,
+        avatarUrl,
+      }
+    );
+
+    res.status(200).json({ message: "User updated", ...result });
+  };
 }
