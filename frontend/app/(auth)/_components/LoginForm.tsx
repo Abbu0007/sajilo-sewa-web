@@ -34,7 +34,11 @@ function EyeIcon({ open }: { open: boolean }) {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       {open ? (
         <>
-          <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
           <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" />
         </>
       ) : (
@@ -67,17 +71,25 @@ export default function LoginForm() {
 
   const onSubmit = async (values: LoginData) => {
     setApiError(null);
+
     try {
       const data = await loginAction({
         email: values.email,
         password: values.password,
       });
 
-      const role = data?.user?.role;
+      // ✅ Safety check
+      if (!data?.token || !data?.user) {
+        setApiError("Invalid login response");
+        return;
+      }
 
-      // ✅ role-based navigation idea
-      if (role === "provider") router.push("/provider/dashboard");
-      else router.push("/client/dashboard");
+      const role = data.user.role;
+
+      // ✅ role-based navigation (ADMIN added)
+      if (role === "admin") router.replace("/admin/dashboard");
+      else if (role === "provider") router.replace("/provider/dashboard");
+      else router.replace("/client/dashboard");
     } catch (e: any) {
       setApiError(e?.message ?? "Login failed");
     }
