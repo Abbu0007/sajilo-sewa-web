@@ -2,6 +2,7 @@
 
 import { loginApi, registerApi } from "@/lib/api/auth";
 import { setAuthCookies } from "@/lib/cookie";
+import { clearAuthCookies } from "@/lib/cookie";
 
 export async function loginAction(values: { email: string; password: string }) {
   const data = await loginApi({
@@ -39,4 +40,9 @@ export async function registerAction(values: {
   }
 
   return data;
+}
+
+export async function logoutAction() {
+  await clearAuthCookies();
+  return { ok: true };
 }
