@@ -8,4 +8,5 @@ export type PublicUser = {
   phone: string;
   role: UserRole;
   profession?: string;
+  avatarUrl?: string;
 };

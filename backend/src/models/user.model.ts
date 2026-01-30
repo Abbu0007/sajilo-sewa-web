@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["client", "provider", "admin"], default: "client" },
     profession: { type: String },
     passwordHash: { type: String, required: true },
+    avatarUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );
