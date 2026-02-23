@@ -3,3 +3,8 @@
 **/out
 .env
 .env.local
+
+# uploads
+backend/uploads/
+frontend/app/uploads/
+
