@@ -10,6 +10,7 @@ export const registerDto = z
     role: z.enum(["client", "provider"]).default("client"),
 
     profession: z.string().optional(),
+    serviceSlug: z.string().optional(),
 
     password: z
       .string()
@@ -19,11 +20,16 @@ export const registerDto = z
       .regex(/[^A-Za-z0-9]/, "Password must include at least one special character"),
   })
   .refine(
-    (data) =>
-      data.role === "provider"
-        ? !!data.profession && data.profession.trim().length >= 2
-        : true,
-    { path: ["profession"], message: "Profession is required for service providers" }
+    (data) => {
+      if (data.role !== "provider") return true;
+      const profOk = !!data.profession && data.profession.trim().length >= 2;
+      const svcOk = !!data.serviceSlug && data.serviceSlug.trim().length >= 2;
+      return profOk && svcOk;
+    },
+    {
+      path: ["profession"],
+      message: "Profession and service are required for service providers",
+    }
   );
 
 export type RegisterDto = z.infer<typeof registerDto>;

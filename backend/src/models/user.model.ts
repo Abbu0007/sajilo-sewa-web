@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     role: { type: String, enum: ["client", "provider", "admin"], default: "client" },
     profession: { type: String },
+    serviceSlug: { type: String, default: "" },
     passwordHash: { type: String, required: true },
     avatarUrl: { type: String, default: "" },
   },
