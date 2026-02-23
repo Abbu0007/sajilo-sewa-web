@@ -1,8 +1,9 @@
 import "./globals.css";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Sajilo Sewa",
-  description: "House Service Booking System",
+  description: "Home service booking platform",
 };
 
 export default function RootLayout({
@@ -12,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="min-h-screen bg-white">{children}</body>
     </html>
   );
 }
