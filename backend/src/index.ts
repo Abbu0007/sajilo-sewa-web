@@ -1,22 +1,48 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import adminRoutes from "./routes/admin.route";
-
 import { connectMongo } from "./database/mongodb";
 import { config } from "./config";
 import { HttpError } from "./errors/http-error";
 import { UserRepository } from "./repositories/user.repository";
 import { UserService } from "./services/user.service";
+import serviceRoutes from "./routes/service.routes";
+import providerRoutes from "./routes/provider.routes";
+import bookingRoutes from "./routes/booking.routes";
+import notificationRoutes from "./routes/notification.routes";
+import favouriteRoutes from "./routes/favourite.routes";
+import providerBookingRoutes from "./routes/provider-booking.routes";
+import adminBookingRoutes from "./routes/admin-booking.routes";
+import adminServiceRoutes from "./routes/admin-service.routes";
+import providerByServiceRoutes from "./routes/provider-by-service.routes";
 
 async function bootstrap() {
   await connectMongo();
 
   const app = express();
 
-  app.use(cors());
+
+  app.use(
+    cors({
+      origin: ["http://localhost:3000"],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
+
+
+  app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
   app.use(express.json());
 
   // static uploads
@@ -30,6 +56,22 @@ async function bootstrap() {
   app.use("/api/users", userRoutes);
   app.use("/api/admin", adminRoutes);
 
+  app.use("/api/services", serviceRoutes);
+  app.use("/api/providers", providerRoutes);
+  app.use("/api/admin/services", adminServiceRoutes);
+  app.use("/api/providers/by-service", providerByServiceRoutes);
+
+  // client
+  app.use("/api/bookings", bookingRoutes);
+  app.use("/api/favourites", favouriteRoutes);
+  app.use("/api/notifications", notificationRoutes);
+
+  // provider
+  app.use("/api/provider/bookings", providerBookingRoutes);
+
+  // admin
+  app.use("/api/admin/bookings", adminBookingRoutes);
+
   // seed admin
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -41,7 +83,7 @@ async function bootstrap() {
     console.log("ℹ️ Admin seed skipped (ADMIN_EMAIL / ADMIN_PASSWORD not set)");
   }
 
-
+  // error handler
   app.use((err: any, _req: any, res: any, _next: any) => {
     if (err?.message === "Only jpg/png/webp allowed") {
       return res.status(400).json({ message: err.message });
