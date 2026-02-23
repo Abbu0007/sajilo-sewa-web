@@ -16,6 +16,7 @@ export class UserRepository {
     phone: string;
     role: "client" | "provider" | "admin";
     profession?: string;
+    serviceSlug?: string;
     passwordHash: string;
     avatarUrl?: string;
   }) {
@@ -45,7 +46,7 @@ export class UserRepository {
     return UserModel.findByIdAndUpdate(userId, { avatarUrl }, { new: true }).exec();
   }
 
-    async findAll() {
+  async findAll() {
     return UserModel.find().sort({ createdAt: -1 }).exec();
   }
 
@@ -58,6 +59,7 @@ export class UserRepository {
       email?: string;
       role?: "client" | "provider" | "admin";
       profession?: string;
+      serviceSlug?: string;
       passwordHash?: string;
       avatarUrl?: string;
     }
@@ -69,6 +71,7 @@ export class UserRepository {
     if (payload.email !== undefined) update.email = payload.email;
     if (payload.role !== undefined) update.role = payload.role;
     if (payload.profession !== undefined) update.profession = payload.profession;
+    if (payload.serviceSlug !== undefined) update.serviceSlug = payload.serviceSlug;
     if (payload.passwordHash !== undefined) update.passwordHash = payload.passwordHash;
     if (payload.avatarUrl !== undefined) update.avatarUrl = payload.avatarUrl;
 
@@ -79,4 +82,9 @@ export class UserRepository {
     return UserModel.findByIdAndDelete(id).exec();
   }
 
+  async findByIds(ids: string[]) {
+    return UserModel.find({ _id: { $in: ids } })
+      .select("firstName lastName email phone avatarUrl role profession serviceSlug")
+      .exec();
+  }
 }

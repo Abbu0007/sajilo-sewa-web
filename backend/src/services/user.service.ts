@@ -4,6 +4,7 @@ import { UserRepository } from "../repositories/user.repository";
 import { HttpError } from "../errors/http-error";
 import { config } from "../config";
 import { PublicUser, UserRole } from "../types/user.type";
+import { ServiceModel } from "../models/service.model";
 
 export class UserService {
   constructor(private repo: UserRepository) {}
@@ -18,7 +19,8 @@ export class UserService {
       role: user.role as UserRole,
       profession: user.profession,
       avatarUrl: user.avatarUrl || "",
-    };
+      serviceSlug: user.serviceSlug || "",
+    } as any;
   }
 
   async register(payload: {
@@ -28,10 +30,18 @@ export class UserService {
     phone: string;
     role: "client" | "provider";
     profession?: string;
+    serviceSlug?: string;
     password: string;
   }) {
     const existing = await this.repo.findByEmail(payload.email);
     if (existing) throw new HttpError(409, "Email already registered");
+    if (payload.role === "provider") {
+      const serviceSlug = (payload.serviceSlug ?? "").trim();
+      if (!serviceSlug) throw new HttpError(400, "Service is required for service providers");
+
+      const service = await ServiceModel.findOne({ slug: serviceSlug, status: "active" }).lean();
+      if (!service) throw new HttpError(400, "Invalid service selected");
+    }
 
     const passwordHash = await bcrypt.hash(payload.password, 10);
 
@@ -42,6 +52,7 @@ export class UserService {
       phone: payload.phone,
       role: payload.role,
       profession: payload.profession,
+      serviceSlug: payload.serviceSlug ?? "",
       passwordHash,
       avatarUrl: "",
     });
@@ -65,14 +76,12 @@ export class UserService {
     return { token, user: this.toPublicUser(user) };
   }
 
-  
   async getMe(userId: string) {
     const user = await this.repo.findById(userId);
     if (!user) throw new HttpError(404, "User not found");
     return { user: this.toPublicUser(user) };
   }
 
-  
   async updateMe(
     userId: string,
     payload: {
@@ -106,6 +115,7 @@ export class UserService {
       phone: "0000000000",
       role: "admin",
       profession: "admin",
+      serviceSlug: "admin",
       passwordHash,
       avatarUrl: "",
     });
@@ -113,7 +123,11 @@ export class UserService {
     console.log(`✅ Admin seeded: ${email}`);
   }
 
-  
+  async removeAvatar(userId: string) {
+  const user = await this.repo.updateAvatar(userId, "");
+  return user;
+}
+
   async updateById(
     id: string,
     loggedUser: { id: string; role: string },
@@ -123,17 +137,16 @@ export class UserService {
       phone?: string;
       email?: string;
       profession?: string;
+      serviceSlug?: string;
       avatarUrl?: string;
     }
   ) {
     if (!loggedUser) throw new HttpError(401, "Unauthorized");
 
-    
     if (loggedUser.role !== "admin" && String(loggedUser.id) !== String(id)) {
       throw new HttpError(403, "Forbidden");
     }
 
-    
     const updatedBasic = await this.repo.updateMe(id, {
       firstName: payload.firstName,
       lastName: payload.lastName,
@@ -143,7 +156,6 @@ export class UserService {
 
     if (!updatedBasic) throw new HttpError(404, "User not found");
 
-    
     let finalUser = updatedBasic;
     if (payload.avatarUrl) {
       const updatedAvatar = await this.repo.updateAvatar(id, payload.avatarUrl);
@@ -152,9 +164,28 @@ export class UserService {
     }
 
     
-    if (payload.profession !== undefined && (finalUser as any).role === "provider") {
-      (finalUser as any).profession = payload.profession;
-      await (finalUser as any).save();
+    if ((finalUser as any).role === "provider") {
+      let changed = false;
+
+      if (payload.profession !== undefined) {
+        (finalUser as any).profession = payload.profession;
+        changed = true;
+      }
+
+      if (payload.serviceSlug !== undefined) {
+        const serviceSlug = (payload.serviceSlug ?? "").trim();
+        if (!serviceSlug) throw new HttpError(400, "Service is required for service providers");
+
+        const service = await ServiceModel.findOne({ slug: serviceSlug, status: "active" }).lean();
+        if (!service) throw new HttpError(400, "Invalid service selected");
+
+        (finalUser as any).serviceSlug = serviceSlug;
+        changed = true;
+      }
+
+      if (changed) {
+        await (finalUser as any).save();
+      }
     }
 
     return { user: this.toPublicUser(finalUser) };

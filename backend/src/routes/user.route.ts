@@ -11,18 +11,20 @@ const repo = new UserRepository();
 const service = new UserService(repo);
 const controller = new UserController(service);
 
-// ✅ Fetch current user profile
+
 router.get("/me", authMiddleware, controller.getMe);
 
-// ✅ Update current user profile
+
 router.patch("/me", authMiddleware, controller.updateMe);
 
-// ✅ Upload avatar
+
 router.post(
   "/me/avatar",
   authMiddleware,
   avatarUpload.single("avatar"),
   controller.uploadAvatar
 );
+
+router.delete("/me/avatar", authMiddleware, controller.removeAvatar);
 
 export default router;
