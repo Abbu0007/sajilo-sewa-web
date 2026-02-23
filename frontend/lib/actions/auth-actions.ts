@@ -11,7 +11,7 @@ export async function loginAction(values: { email: string; password: string }) {
   });
 
   if (data?.token && data?.user) {
-    await setAuthCookies(data.token, data.user); 
+    await setAuthCookies(data.token, data.user);
   }
 
   return data;
@@ -24,19 +24,27 @@ export async function registerAction(values: {
   phone: string;
   role: "client" | "provider";
   profession?: string;
+
+  
+  serviceSlug?: string;
+
   password: string;
 }) {
   const payload = {
     ...values,
     email: values.email.trim(),
     phone: values.phone.replace(/\D/g, "").slice(-10),
+
     profession: values.role === "provider" ? values.profession?.trim() : undefined,
+
+    
+    serviceSlug: values.role === "provider" ? values.serviceSlug?.trim() : undefined,
   };
 
   const data = await registerApi(payload);
 
   if (data?.token && data?.user) {
-    await setAuthCookies(data.token, data.user); 
+    await setAuthCookies(data.token, data.user);
   }
 
   return data;

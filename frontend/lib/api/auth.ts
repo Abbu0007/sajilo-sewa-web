@@ -13,6 +13,9 @@ export type RegisterPayload = {
   phone: string; // 10 digits only
   role: "client" | "provider";
   profession?: string;
+
+  serviceSlug?: string;
+
   password: string;
 };
 
