@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TextInput from "@/components/ui/TextInput";
@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 
 import { registerSchema, RegisterData } from "../schema";
 import { registerAction } from "@/lib/actions/auth-actions";
+import { http } from "@/lib/api/axios";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 
 function MailIcon() {
   return (
@@ -39,9 +41,22 @@ function LockIcon() {
   );
 }
 
+type ServiceItem = {
+  _id: string;
+  name: string;
+  slug: string;
+  status?: "active" | "inactive";
+};
+
 export default function RegisterForm() {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const [roleUI, setRoleUI] = useState<"client" | "provider">("client");
+
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState<string | null>(null);
 
   const {
     register,
@@ -60,31 +75,55 @@ export default function RegisterForm() {
       confirmPassword: "",
       role: "client",
       profession: "",
+      serviceSlug: "", // ✅ NEW
     },
   });
-
-  const [roleUI, setRoleUI] = useState<"client" | "provider">("client");
 
   useEffect(() => {
     const initial = getValues("role");
     setRoleUI(initial === "provider" ? "provider" : "client");
   }, [getValues]);
 
+  // ✅ load services for dropdown
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setServicesLoading(true);
+        setServicesError(null);
+
+        const res = await http.get(ENDPOINTS.services);
+        const items: ServiceItem[] = Array.isArray(res.data?.items) ? res.data.items : [];
+        const activeOnly = items.filter((s) => (s.status ?? "active") === "active");
+
+        if (!cancelled) setServices(activeOnly);
+      } catch (e: any) {
+        if (!cancelled) setServicesError(e?.message ?? "Failed to load services");
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const serviceOptions = useMemo(
+    () => services.map((s) => ({ value: s.slug, label: s.name })),
+    [services]
+  );
+
   const setRole = (value: "client" | "provider") => {
     setRoleUI(value);
 
-    setValue("role", value, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    });
+    setValue("role", value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
 
     if (value === "client") {
-      setValue("profession", "", {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true,
-      });
+      setValue("profession", "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+      setValue("serviceSlug", "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
   };
 
@@ -96,7 +135,9 @@ export default function RegisterForm() {
         onClick={() => setRole(value)}
         className={[
           "flex-1 rounded-lg border px-3 py-2 text-xs font-medium",
-          active ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700",
+          active
+            ? "border-blue-600 bg-blue-50 text-blue-700"
+            : "border-slate-200 bg-white text-slate-700",
         ].join(" ")}
       >
         {label}
@@ -111,13 +152,13 @@ export default function RegisterForm() {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
-        phone: values.phone, // normalized in action (10 digits)
+        phone: values.phone,
         role: values.role,
         profession: values.role === "provider" ? values.profession : undefined,
+        serviceSlug: values.role === "provider" ? values.serviceSlug : undefined, // ✅ NEW
         password: values.password,
       });
 
-      // After register → go login
       router.push("/login");
     } catch (e: any) {
       setApiError(e?.message ?? "Register failed");
@@ -187,12 +228,42 @@ export default function RegisterForm() {
       </div>
 
       {roleUI === "provider" && (
-        <TextInput
-          label="Profession"
-          placeholder="e.g. Plumber, Electrician, Cleaner"
-          error={errors.profession?.message}
-          registration={register("profession")}
-        />
+        <>
+          {/* ✅ Service dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">Service Category</label>
+
+            <select
+              className={[
+                "w-full rounded-xl border px-3 py-3 text-sm outline-none",
+                errors.serviceSlug?.message ? "border-red-400" : "border-slate-200",
+                servicesLoading ? "bg-slate-50 text-slate-500" : "bg-white",
+              ].join(" ")}
+              disabled={servicesLoading}
+              {...register("serviceSlug")}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                {servicesLoading ? "Loading services..." : "Select a service"}
+              </option>
+              {serviceOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {servicesError && <p className="text-xs text-red-600">{servicesError}</p>}
+            {errors.serviceSlug?.message && <p className="text-xs text-red-600">{errors.serviceSlug.message}</p>}
+          </div>
+
+          <TextInput
+            label="Profession"
+            placeholder="e.g. Plumber, Electrician, Cleaner"
+            error={errors.profession?.message}
+            registration={register("profession")}
+          />
+        </>
       )}
 
       {apiError && <p className="text-xs text-red-600">{apiError}</p>}

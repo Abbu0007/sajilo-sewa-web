@@ -24,6 +24,9 @@ export const registerSchema = z
 
     role: z.enum(["client", "provider"], { message: "Role is required" }),
 
+    // ✅ NEW
+    serviceSlug: z.string().optional(),
+
     profession: z.string().optional(),
 
     password: passwordSchema,
@@ -38,6 +41,13 @@ export const registerSchema = z
     {
       path: ["profession"],
       message: "Profession is required for service providers",
+    }
+  )
+  .refine(
+    (v) => (v.role === "provider" ? !!v.serviceSlug && v.serviceSlug.trim().length >= 2 : true),
+    {
+      path: ["serviceSlug"],
+      message: "Service is required for service providers",
     }
   );
 
