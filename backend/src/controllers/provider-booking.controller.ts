@@ -16,6 +16,16 @@ export class ProviderBookingController {
     }
   };
 
+  earnings = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as any).user;
+      const data = await this.service.providerGetEarnings(user.id, user.role);
+      res.json(data);
+    } catch (e) {
+      next(e);
+    }
+  };
+
   accept = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
@@ -43,8 +53,18 @@ export class ProviderBookingController {
     try {
       const user = (req as any).user;
       const bookingId = req.params.bookingId;
-      const payload = providerUpdateStatusDto.parse(req.body);
-      const booking = await this.service.providerUpdateStatus(user.id, user.role, bookingId, payload.status, payload.reason);
+
+      const payload = providerUpdateStatusDto.parse(req.body ?? {});
+
+      const booking = await this.service.providerUpdateStatus(
+        user.id,
+        user.role,
+        bookingId,
+        payload.status,
+        payload.reason,
+        payload.price
+      );
+
       res.json({ booking });
     } catch (e) {
       next(e);
