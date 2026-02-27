@@ -25,8 +25,12 @@ export const ENDPOINTS = {
   notifications: "/api/notifications",
   notificationRead: (id: string) => `/api/notifications/${id}/read`,
 
+  ratings: "/api/ratings",
+
   uploadAvatar: "/api/users/me/avatar",
   removeAvatar: "/api/users/me/avatar",
+
+  clientMeProfile: "/api/clients/me/profile",
 
   // profile/settings
   me: "/api/users/me",

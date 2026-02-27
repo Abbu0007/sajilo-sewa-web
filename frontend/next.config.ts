@@ -3,19 +3,17 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb", 
+      bodySizeLimit: "10mb",
     },
   },
 
-  images: {
-    remotePatterns: [
+  async rewrites() {
+    return [
       {
-        protocol: "http",
-        hostname: "127.0.0.1", 
-        port: "5000",
-        pathname: "/uploads/**",
+        source: "/uploads/:path*",
+        destination: "http://127.0.0.1:5000/uploads/:path*", 
       },
-    ],
+    ];
   },
 };
 

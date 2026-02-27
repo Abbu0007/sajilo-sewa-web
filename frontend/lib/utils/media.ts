@@ -1,17 +1,14 @@
-export function toProxyUploadsUrl(url?: string) {
+export function toUploadsPath(url?: string | null) {
   if (!url) return "";
+  const u = url.trim();
+  if (u.startsWith("http://10.0.2.2:5000")) return u.replace("http://10.0.2.2:5000", "");
+  if (u.startsWith("http://127.0.0.1:5000")) return u.replace("http://127.0.0.1:5000", "");
+  if (u.startsWith("http://localhost:5000")) return u.replace("http://localhost:5000", "");
 
-  // Already proxied/local
-  if (url.startsWith("/uploads/")) return url;
+  if (u.startsWith("/uploads/")) return u;
 
-  // Convert absolute backend url → /uploads/...
-  // Example: http://localhost:5000/uploads/avatars/x.png → /uploads/avatars/x.png
-  const idx = url.indexOf("/uploads/");
-  if (idx !== -1) return url.slice(idx);
 
-  // If backend returns just "uploads/..." or "avatars/..."
-  if (url.startsWith("uploads/")) return `/${url}`;
-  if (url.startsWith("avatars/")) return `/uploads/${url}`;
+  if (u.startsWith("uploads/")) return `/${u}`;
 
-  return url; // fallback
+  return u;
 }
