@@ -34,41 +34,54 @@ export default function BookingModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  
   if (!open || !provider) return null;
+  if (!mounted) return null;
 
   const p = provider;
   const canBook = !!serviceId;
+  const isAddressValid = addressText.trim().length > 0;
 
   async function submit() {
+    if (!scheduledAt) {
+      setMsg("Please select date and time.");
+      return;
+    }
+
+    if (!isAddressValid) {
+      setMsg("Address is required.");
+      return;
+    }
+
+    if (!serviceId) {
+      setMsg("Service not found for this provider.");
+      return;
+    }
+
     setSaving(true);
     setMsg(null);
 
     try {
-      if (!serviceId) {
-        setMsg("Service not found for this provider. Open booking from a Service page.");
-        return;
-      }
-
       await createBooking({
         providerId: p._id,
         serviceId,
         scheduledAt,
-        addressText: addressText.trim() || undefined,
+        addressText: addressText.trim(), 
         note: note.trim() || undefined,
       });
 
       setMsg("Booking request sent!");
-      setTimeout(() => onClose(), 650);
+      setTimeout(() => {
+        setScheduledAt("");
+        setAddressText("");
+        setNote("");
+        onClose();
+      }, 700);
     } catch (e: any) {
       setMsg(e?.message ?? "Booking failed");
     } finally {
       setSaving(false);
     }
   }
-
-  
-  if (!mounted) return null;
 
   return createPortal(
     <>
@@ -84,7 +97,9 @@ export default function BookingModal({
           <div className="p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-lg font-extrabold text-slate-900">Book Provider</div>
+                <div className="text-lg font-extrabold text-slate-900">
+                  Book Provider
+                </div>
                 <div className="text-sm text-slate-600">
                   {p.firstName} {p.lastName}
                 </div>
@@ -100,8 +115,11 @@ export default function BookingModal({
             </div>
 
             <div className="mt-5 grid gap-4">
+              {/* Date & Time */}
               <div>
-                <label className="text-xs font-semibold text-slate-600">Date & Time</label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Date & Time *
+                </label>
                 <input
                   type="datetime-local"
                   value={scheduledAt}
@@ -110,18 +128,28 @@ export default function BookingModal({
                 />
               </div>
 
+              {/* Address (Required) */}
               <div>
-                <label className="text-xs font-semibold text-slate-600">Address</label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Address *
+                </label>
                 <input
                   value={addressText}
                   onChange={(e) => setAddressText(e.target.value)}
-                  placeholder="Your address"
-                  className="mt-1 w-full h-12 rounded-2xl border px-4 bg-white outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder="Enter your full address"
+                  className={`mt-1 w-full h-12 rounded-2xl border px-4 bg-white outline-none focus:ring-2 ${
+                    !isAddressValid && msg
+                      ? "border-rose-400 focus:ring-rose-300"
+                      : "focus:ring-blue-300"
+                  }`}
                 />
               </div>
 
+              {/* Notes */}
               <div>
-                <label className="text-xs font-semibold text-slate-600">Notes (optional)</label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Notes (optional)
+                </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
@@ -130,7 +158,11 @@ export default function BookingModal({
                 />
               </div>
 
-              {msg ? <div className="text-sm text-slate-700">{msg}</div> : null}
+              {msg ? (
+                <div className="text-sm text-rose-600 font-semibold">
+                  {msg}
+                </div>
+              ) : null}
 
               <div className="flex items-center justify-end gap-3">
                 <button
@@ -139,20 +171,20 @@ export default function BookingModal({
                 >
                   Cancel
                 </button>
+
                 <button
                   onClick={submit}
-                  disabled={saving || !scheduledAt || !canBook}
+                  disabled={
+                    saving ||
+                    !scheduledAt ||
+                    !isAddressValid ||
+                    !canBook
+                  }
                   className="h-11 rounded-2xl px-6 font-extrabold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Booking..." : "Confirm Booking"}
                 </button>
               </div>
-
-              {!canBook ? (
-                <div className="text-xs text-slate-500">
-                  Booking needs <b>serviceId</b>. From favourites we map provider.serviceSlug → serviceId.
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
