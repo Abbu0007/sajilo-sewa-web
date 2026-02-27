@@ -1,69 +1,58 @@
-import { getMyBookings } from "@/lib/actions/client-actions";
-import EmptyState from "../../_components/ui/EmptyState";
-import GlassCard from "../../_components/ui/GlassCard";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default async function BookingsPage() {
-  const res = await getMyBookings("all");
+import { getMyBookings } from "@/lib/actions/client-actions";
+import ClientBookingsClient from "./bookings-client";
+
+const tabs = [
+  "all",
+  "pending",
+  "confirmed",
+  "in_progress",
+  "awaiting_payment_confirmation",
+  "completed",
+  "cancelled",
+];
+
+export default async function BookingsPage({ searchParams }: { searchParams: any }) {
+  const status = (searchParams?.status as string) || "all";
+
+  const res = await getMyBookings(status).catch(() => ({ items: [] }));
   const items = res.items || [];
 
   return (
-    <GlassCard className="p-5 sm:p-6 shadow-[0_30px_80px_rgba(15,23,42,0.10)]">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xl font-extrabold text-slate-900">My Bookings</div>
-          <div className="text-sm text-slate-600">Track all your service bookings.</div>
+    <div className="space-y-6">
+      <div className="rounded-3xl bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)] ring-1 ring-black/5 p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xl font-extrabold text-slate-900">My Bookings</div>
+            <div className="text-sm text-slate-600">Track bookings by status.</div>
+          </div>
+
+          <div className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full">
+            Total: {items.length}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tabs.map((t) => (
+            <a
+              key={t}
+              href={`/client/dashboard/bookings?status=${t}`}
+              className={[
+                "rounded-full px-4 py-2 text-sm font-semibold transition",
+                t === status
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+              ].join(" ")}
+            >
+              {t.replaceAll("_", " ")}
+            </a>
+          ))}
         </div>
       </div>
 
-      <div className="mt-5">
-        {items.length === 0 ? (
-          <EmptyState title="No bookings yet" description="Book a provider from Home or Services." />
-        ) : (
-          <div className="space-y-4">
-            {items.map((b) => (
-              <div
-                key={b._id}
-                className="rounded-3xl bg-white/70 backdrop-blur border border-white/40
-                           shadow-[0_18px_50px_rgba(2,6,23,0.10)]
-                           p-4 sm:p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="font-extrabold text-slate-900">
-                    {b.serviceId?.name ?? "Service"}{" "}
-                    <span className="text-slate-400 font-black">•</span>{" "}
-                    {b.providerId ? `${b.providerId.firstName} ${b.providerId.lastName}` : "Provider"}
-                  </div>
-
-                  <span
-                    className="text-xs rounded-full px-3 py-1 font-extrabold
-                               bg-gradient-to-r from-slate-900/5 to-slate-900/0
-                               border border-white/60 text-slate-700"
-                  >
-                    {b.status}
-                  </span>
-                </div>
-
-                <div className="mt-3 text-sm text-slate-700 space-y-1">
-                  <div>
-                    <span className="font-extrabold text-slate-900">When:</span>{" "}
-                    {new Date(b.scheduledAt).toLocaleString()}
-                  </div>
-                  {b.addressText ? (
-                    <div>
-                      <span className="font-extrabold text-slate-900">Address:</span> {b.addressText}
-                    </div>
-                  ) : null}
-                  {b.note ? (
-                    <div>
-                      <span className="font-extrabold text-slate-900">Note:</span> {b.note}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </GlassCard>
+      <ClientBookingsClient initialItems={items} />
+    </div>
   );
 }
