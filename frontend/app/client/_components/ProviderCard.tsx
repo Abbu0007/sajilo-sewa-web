@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Heart, CalendarCheck, Info } from "lucide-react";
+import { Heart, CalendarCheck, Info, Star, Briefcase, Wallet } from "lucide-react";
 import { cn } from "./ui/cn";
 import type { ProviderItem } from "@/lib/actions/client-actions";
+import { toUploadsPath } from "@/lib/utils/media";
 
 export default function ProviderCard({
   provider,
@@ -19,8 +20,24 @@ export default function ProviderCard({
   onToggleFavourite: () => void;
 }) {
   const initials =
-    `${provider.firstName?.[0] ?? ""}${provider.lastName?.[0] ?? ""}`.trim().toUpperCase() || "U";
+    `${provider.firstName?.[0] ?? ""}${provider.lastName?.[0] ?? ""}`
+      .trim()
+      .toUpperCase() || "U";
 
+  const ratingAvg =
+    typeof provider.ratingAvg === "number" ? provider.ratingAvg : 0;
+  const ratingCount =
+    typeof provider.ratingCount === "number" ? provider.ratingCount : 0;
+
+  const startingPrice =
+    typeof provider.startingPrice === "number" ? provider.startingPrice : 0;
+
+  const completedJobs =
+    typeof provider.completedJobs === "number" ? provider.completedJobs : 0;
+
+    const hasRating = ratingCount > 0 && ratingAvg > 0;
+    const hasJobs = completedJobs > 0;
+    const hasPrice = startingPrice > 0;
   return (
     <div
       className={cn(
@@ -39,11 +56,12 @@ export default function ProviderCard({
             <div className="h-12 w-12 rounded-2xl overflow-hidden border border-white/35 bg-white/60 grid place-items-center">
               {provider.avatarUrl ? (
                 <Image
-                  src={provider.avatarUrl}
+                  src={toUploadsPath(provider.avatarUrl)}
                   alt="avatar"
                   width={48}
                   height={48}
                   className="h-12 w-12 object-cover"
+                  unoptimized
                 />
               ) : (
                 <span className="font-extrabold text-slate-700">{initials}</span>
@@ -55,8 +73,40 @@ export default function ProviderCard({
                 {provider.firstName} {provider.lastName}
               </div>
               <div className="text-xs text-slate-600 truncate">
-                {provider.profession ?? "Professional"} • {provider.serviceSlug ?? "service"}
+                {provider.profession ?? "Professional"} •{" "}
+                {provider.serviceSlug ?? "service"}
               </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] font-extrabold text-amber-700">
+                <Star className="h-3.5 w-3.5" />
+                {ratingCount > 0 && ratingAvg > 0 ? (
+                  <>
+                    {ratingAvg.toFixed(1)}
+                    <span className="font-bold text-amber-700/80">
+                      ({ratingCount})
+                    </span>
+                  </>
+                ) : (
+                  "Not Rated"
+                )}
+              </span>
+
+              {/* 💼 Jobs */}
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[11px] font-extrabold text-slate-700">
+                <Briefcase className="h-3.5 w-3.5" />
+                {completedJobs > 0 ? `${completedJobs} jobs` : "No jobs yet"}
+              </span>
+
+              {/* 💰 Price */}
+              {startingPrice > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] font-extrabold text-blue-700">
+                  <Wallet className="h-3.5 w-3.5" />
+                  From Rs. {startingPrice}
+                </span>
+              )}
+            </div>
+            
             </div>
           </div>
 
@@ -77,7 +127,9 @@ export default function ProviderCard({
             <Heart
               className={cn(
                 "h-5 w-5 transition",
-                isFavourite ? "fill-red-500 text-red-500" : "text-slate-700"
+                isFavourite
+                  ? "fill-red-500 text-red-500"
+                  : "text-slate-700"
               )}
             />
           </button>

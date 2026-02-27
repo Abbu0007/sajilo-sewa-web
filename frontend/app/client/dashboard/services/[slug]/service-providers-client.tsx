@@ -14,23 +14,35 @@ export default function ServiceProvidersClient({
   slug,
   service,
   providers,
+  initialFavourites, 
 }: {
   slug: string;
   service: ServiceItem | null;
   providers: ProviderItem[];
+  initialFavourites: ProviderItem[]; 
 }) {
   const [selected, setSelected] = useState<ProviderItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
-  const [favMap, setFavMap] = useState<Record<string, boolean>>({});
 
-  const serviceId = service?._id; 
+  const [favMap, setFavMap] = useState<Record<string, boolean>>(() => {
+    const m: Record<string, boolean> = {};
+    for (const f of initialFavourites || []) m[f._id] = true;
+    return m;
+  });
+
+  const serviceId = service?._id;
 
   async function onToggleFavourite(p: ProviderItem) {
+    // ✅ optimistic
+    setFavMap((m) => ({ ...m, [p._id]: !m[p._id] }));
+
     try {
       const res = await toggleFavourite(p._id);
       setFavMap((m) => ({ ...m, [p._id]: res.isFavourite }));
     } catch {
+      // revert if failed
+      setFavMap((m) => ({ ...m, [p._id]: !m[p._id] }));
     }
   }
 
@@ -46,7 +58,6 @@ export default function ServiceProvidersClient({
 
   return (
     <div className="space-y-6">
-     
       <div className="relative overflow-hidden rounded-3xl border border-white/35 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950 text-white p-6 sm:p-8">
         <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -left-28 -bottom-28 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
@@ -57,7 +68,6 @@ export default function ServiceProvidersClient({
         </div>
       </div>
 
-      
       <GlassCard className="p-5 sm:p-6">
         <SectionHeader title="Available Providers" description="View details, add to favourites, or book." />
 
@@ -71,15 +81,16 @@ export default function ServiceProvidersClient({
               <ProviderCard
                 key={p._id}
                 provider={p}
-                isFavourite={!!favMap[p._id]}
-                onOpen={() => openDetails(p)} 
-                onBook={() => openBooking(p)} 
+                isFavourite={!!favMap[p._id]} // ✅ correct after refresh
+                onOpen={() => openDetails(p)}
+                onBook={() => openBooking(p)}
                 onToggleFavourite={() => onToggleFavourite(p)}
               />
             ))}
           </div>
         )}
       </GlassCard>
+
       <ProviderDetailsModal
         open={detailsOpen}
         provider={selected}
@@ -93,7 +104,8 @@ export default function ServiceProvidersClient({
           setBookingOpen(true);
         }}
         onClose={() => setDetailsOpen(false)}
-      />   
+      />
+
       <BookingModal
         open={bookingOpen}
         provider={selected}

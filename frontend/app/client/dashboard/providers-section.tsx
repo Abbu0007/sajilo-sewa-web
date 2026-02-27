@@ -13,15 +13,22 @@ import { toggleFavourite } from "@/lib/actions/client-actions";
 export default function ProvidersSection({
   initialProviders,
   services,
+  initialFavourites, // ✅ NEW
 }: {
   initialProviders: ProviderItem[];
   services: ServiceItem[];
+  initialFavourites: ProviderItem[]; // ✅ NEW
 }) {
   const [providers] = useState<ProviderItem[]>(initialProviders || []);
   const [selected, setSelected] = useState<ProviderItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
-  const [favMap, setFavMap] = useState<Record<string, boolean>>({});
+
+  const [favMap, setFavMap] = useState<Record<string, boolean>>(() => {
+    const m: Record<string, boolean> = {};
+    for (const f of initialFavourites || []) m[f._id] = true;
+    return m;
+  });
 
   const serviceIdBySlug = useMemo(() => {
     const map = new Map<string, string>();
@@ -33,10 +40,15 @@ export default function ProvidersSection({
     selected?.serviceSlug ? serviceIdBySlug.get(selected.serviceSlug) || undefined : undefined;
 
   async function onToggleFavourite(p: ProviderItem) {
+    setFavMap((m) => ({ ...m, [p._id]: !m[p._id] }));
+
     try {
       const res = await toggleFavourite(p._id);
       setFavMap((m) => ({ ...m, [p._id]: res.isFavourite }));
-    } catch {}
+    } catch {
+      // revert if failed
+      setFavMap((m) => ({ ...m, [p._id]: !m[p._id] }));
+    }
   }
 
   function openDetails(p: ProviderItem) {
@@ -69,7 +81,7 @@ export default function ProvidersSection({
             <ProviderCard
               key={p._id}
               provider={p}
-              isFavourite={!!favMap[p._id]}
+              isFavourite={!!favMap[p._id]} 
               onOpen={() => openDetails(p)}
               onBook={() => openBooking(p)}
               onToggleFavourite={() => onToggleFavourite(p)}
@@ -81,7 +93,7 @@ export default function ProvidersSection({
       <ProviderDetailsModal
         open={detailsOpen}
         provider={selected}
-        isFavourite={selected ? !!favMap[selected._id] : false}
+        isFavourite={selected ? !!favMap[selected._id] : false} 
         onToggleFavourite={() => {
           if (selected) onToggleFavourite(selected);
         }}
