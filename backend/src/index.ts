@@ -19,6 +19,8 @@ import providerBookingRoutes from "./routes/provider-booking.routes";
 import adminBookingRoutes from "./routes/admin-booking.routes";
 import adminServiceRoutes from "./routes/admin-service.routes";
 import providerByServiceRoutes from "./routes/provider-by-service.routes";
+import ratingRoutes from "./routes/rating.routes";
+import clientRoutes from "./routes/client.routes";
 
 async function bootstrap() {
   await connectMongo();
@@ -65,10 +67,14 @@ async function bootstrap() {
   app.use("/api/bookings", bookingRoutes);
   app.use("/api/favourites", favouriteRoutes);
   app.use("/api/notifications", notificationRoutes);
+  app.use("/api/ratings", ratingRoutes);
 
   // provider
   app.use("/api/provider/bookings", providerBookingRoutes);
 
+  //client
+  app.use("/api/clients", clientRoutes);
+  
   // admin
   app.use("/api/admin/bookings", adminBookingRoutes);
 
