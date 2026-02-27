@@ -46,5 +46,6 @@ export default async function ClientDashboardLayout({
     >
       {children}
     </DashboardShell>
+    
   );
 }

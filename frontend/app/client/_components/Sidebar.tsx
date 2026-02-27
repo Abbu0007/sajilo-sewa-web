@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Home, Settings, ClipboardList, LogOut } from "lucide-react";
+import { Heart, Home,  ClipboardList, LogOut, User } from "lucide-react";
 import GlassCard from "./ui/GlassCard";
 import { cn } from "./ui/cn";
 import Button from "./ui/Button";
@@ -21,10 +21,10 @@ export default function Sidebar({ user }: { user?: SidebarUser | null }) {
   const pathname = usePathname();
 
   const items = [
-    { href: "/client/dashboard", label: "Home", icon: Home },
-    { href: "/client/dashboard/bookings", label: "Bookings", icon: ClipboardList },
-    { href: "/client/dashboard/favourites", label: "Favourites", icon: Heart },
-    { href: "/client/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/client/dashboard", label: "Home", icon: Home },
+  { href: "/client/dashboard/bookings", label: "Bookings", icon: ClipboardList },
+  { href: "/client/dashboard/favourites", label: "Favourites", icon: Heart },
+  { href: "/client/dashboard/profile", label: "Profile", icon: User },
   ];
 
   async function onLogout() {
@@ -52,7 +52,6 @@ export default function Sidebar({ user }: { user?: SidebarUser | null }) {
           <div className="text-xs text-slate-500 truncate">{displayName}</div>
         </div>
       </div>
-
       <div className="mt-5 space-y-1">
         {items.map((it) => {
           const active = pathname === it.href;
