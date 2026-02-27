@@ -9,13 +9,21 @@ const BookingSchema = new Schema(
 
     scheduledAt: { type: Date, required: true, index: true },
     note: { type: String, default: "" },
-
     addressText: { type: String, default: "" },
 
     price: { type: Number, default: 0 },
+
     status: {
       type: String,
-      enum: ["pending", "confirmed", "rejected", "in_progress", "completed", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "rejected",
+        "in_progress",
+        "awaiting_payment_confirmation",
+        "completed",
+        "cancelled",
+      ],
       default: "pending" as BookingStatus,
       index: true,
     },
@@ -25,7 +33,7 @@ const BookingSchema = new Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "paid", "refunded"],
+      enum: ["unpaid", "pending_confirmation", "paid", "refunded"],
       default: "unpaid" as PaymentStatus,
     },
   },

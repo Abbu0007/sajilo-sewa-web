@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { BookingModel } from "../models/booking.model";
 
 export class BookingRepository {
@@ -44,7 +45,7 @@ export class BookingRepository {
       if (params.dateTo) filter.scheduledAt.$lte = params.dateTo;
     }
 
-    // Basic text search on note/address 
+   
     if (params.q) {
       filter.$or = [
         { note: new RegExp(params.q, "i") },
@@ -75,5 +76,29 @@ export class BookingRepository {
       .populate("providerId", "firstName lastName email phone avatarUrl role")
       .populate("serviceId", "name slug icon basePriceFrom")
       .lean();
+  }
+
+  async countForProvider(providerId: string, status?: string) {
+    const filter: any = { providerId };
+    if (status && status !== "all") filter.status = status;
+    return BookingModel.countDocuments(filter);
+  }
+
+  async sumProviderEarnings(providerId: string) {
+    const pid = new Types.ObjectId(providerId);
+
+    const agg = await BookingModel.aggregate([
+      {
+        $match: {
+          providerId: pid,
+          status: "completed",
+          paymentStatus: "paid",
+          price: { $gt: 0 },
+        },
+      },
+      { $group: { _id: "$providerId", total: { $sum: "$price" } } },
+    ]);
+
+    return Number(agg?.[0]?.total ?? 0);
   }
 }

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { BookingService } from "../services/booking.service";
-import { createBookingDto, cancelBookingDto } from "../dtos/booking.dto";
+import { createBookingDto, cancelBookingDto, confirmPaymentDto } from "../dtos/booking.dto";
 
 export class BookingController {
   constructor(private service: BookingService) {}
@@ -8,7 +8,7 @@ export class BookingController {
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
-      const payload = createBookingDto.parse(req.body);
+      const payload = createBookingDto.parse(req.body ?? {});
       const booking = await this.service.createBooking(user.id, user.role, payload);
       res.status(201).json({ booking });
     } catch (e) {
@@ -49,4 +49,17 @@ export class BookingController {
       next(e);
     }
   };
+  confirmPayment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = (req as any).user;
+    const bookingId = req.params.bookingId;
+
+    confirmPaymentDto.parse({ confirm: true });
+
+    const booking = await this.service.confirmPayment(user.id, user.role, bookingId);
+    res.json({ booking });
+  } catch (e) {
+    next(e);
+  }
+};
 }
