@@ -50,6 +50,15 @@ export class UserRepository {
     return UserModel.find().sort({ createdAt: -1 }).exec();
   }
 
+    async findProvidersByServiceSlug(serviceSlug: string) {
+    return UserModel.find({
+      role: "provider",
+      serviceSlug: serviceSlug,
+    })
+      .select("firstName lastName email phone avatarUrl role profession serviceSlug avgRating ratingCount")
+      .exec();
+  }
+
   async adminUpdateById(
     id: string,
     payload: {
@@ -86,5 +95,21 @@ export class UserRepository {
     return UserModel.find({ _id: { $in: ids } })
       .select("firstName lastName email phone avatarUrl role profession serviceSlug")
       .exec();
+  }
+
+    async updateRatingStats(
+    userId: string,
+    stats: { avgRating: number; ratingCount: number }
+  ) {
+    return UserModel.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          avgRating: stats.avgRating,
+          ratingCount: stats.ratingCount,
+        },
+      },
+      { new: true }
+    ).exec();
   }
 }

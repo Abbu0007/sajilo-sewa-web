@@ -20,11 +20,26 @@ export class ProviderProfileRepository {
       .lean();
   }
 
+    async findByUserIds(userIds: string[]) {
+    const rows = await ProviderProfileModel.find({
+      userId: { $in: userIds },
+    }).lean();
+
+    const map = new Map<string, any>();
+    for (const r of rows) map.set(String(r.userId), r);
+    return map;
+  }
+
   async search(params: { q?: string; profession?: string; availability?: string }) {
     const filter: any = {};
     if (params.profession) filter.profession = params.profession;
     if (params.availability) filter.availability = params.availability;
-    if (params.q) filter.$or = [{ profession: new RegExp(params.q, "i") }, { bio: new RegExp(params.q, "i") }];
+    if (params.q) {
+      filter.$or = [
+        { profession: new RegExp(params.q, "i") },
+        { bio: new RegExp(params.q, "i") },
+      ];
+    }
     return ProviderProfileModel.find(filter).sort({ ratingAvg: -1 }).lean();
   }
 }

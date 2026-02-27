@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
     serviceSlug: { type: String, default: "" },
     passwordHash: { type: String, required: true },
     avatarUrl: { type: String, default: "" },
+    avgRating: { type: Number, default: 0 },
+    ratingCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
