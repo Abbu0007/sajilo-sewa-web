@@ -41,9 +41,6 @@ export default function AdminOverviewPage() {
           <Link href="/admin/dashboard/bookings" className="mt-4 inline-flex rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
           Open Bookings
           </Link>
-          <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-2 text-xs text-slate-700 ring-1 ring-slate-200">
-            Coming soon: booking status, provider assignment, timeline 
-            </div>
             </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import AdminShell from "./_components/AdminShell";
+import AdminShell from "../_components/AdminShell";
 
 async function getUser() {
   const jar = await cookies();

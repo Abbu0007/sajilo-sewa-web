@@ -203,7 +203,7 @@ export async function providerUpdateBookingStatus(
   return data.booking ?? data;
 }
 
-// -------- NOTIFICATIONS --------
+
 export async function providerGetNotifications(): Promise<AppNotification[]> {
   const data = await apiFetch("/api/notifications");
   const items = (data.items ?? []) as any[];
@@ -223,7 +223,6 @@ export async function providerMarkNotificationRead(id: string) {
   await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" });
 }
 
-// -------- RATINGS --------
 export async function providerCreateRating(input: { bookingId: string; stars: number; comment?: string }) {
   await apiFetch("/api/ratings", {
     method: "POST",

@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import Link from "next/link";
 import BookingDetailsClient from "../_ui/booking-details-client";
 import ProviderBookingCard from "../../_components/ui/ProviderBookingCard";
 import { providerGetBookings } from "@/lib/actions/provider-actions";
@@ -10,14 +14,17 @@ const tabs = [
   "awaiting_payment_confirmation",
   "completed",
   "cancelled",
+  "rejected",
 ];
 
 export default async function ProviderBookingsPage({
   searchParams,
 }: {
-  searchParams: any;
+  searchParams: Promise<{ status?: string }>;
 }) {
-  const status = (searchParams?.status as string) || "all";
+  const sp = await searchParams; 
+  const status = (sp?.status ?? "all").toString();
+
   const items = await providerGetBookings(status).catch(() => []);
 
   return (
@@ -28,9 +35,10 @@ export default async function ProviderBookingsPage({
 
         <div className="mt-4 flex flex-wrap gap-2">
           {tabs.map((t) => (
-            <a
+            <Link
               key={t}
-              href={`/provider/dashboard/bookings?status=${t}`}
+              href={`/provider/dashboard/bookings?status=${encodeURIComponent(t)}`}
+              prefetch={false}
               className={[
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 t === status
@@ -39,7 +47,7 @@ export default async function ProviderBookingsPage({
               ].join(" ")}
             >
               {t.replaceAll("_", " ")}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

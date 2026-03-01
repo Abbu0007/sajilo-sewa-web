@@ -12,10 +12,8 @@ import { adminMiddleware } from "../middlewares/admin.middleware";
 const router = Router();
 
 const bookingRepo = new BookingRepository();
-
 const notifRepo = new NotificationRepository();
 const notifService = new NotificationService(notifRepo);
-
 const providerProfileRepo = new ProviderProfileRepository();
 const userRepo = new UserRepository();
 
@@ -30,5 +28,7 @@ const controller = new AdminBookingController(bookingService);
 
 router.get("/", authMiddleware, adminMiddleware, controller.list);
 router.get("/:bookingId", authMiddleware, adminMiddleware, controller.get);
+router.patch("/:bookingId/cancel", authMiddleware, adminMiddleware, controller.cancel);
+router.delete("/:bookingId", authMiddleware, adminMiddleware, controller.remove);
 
 export default router;

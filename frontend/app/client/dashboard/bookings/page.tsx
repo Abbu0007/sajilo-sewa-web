@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import Link from "next/link";
 import { getMyBookings } from "@/lib/actions/client-actions";
 import ClientBookingsClient from "./bookings-client";
 
@@ -14,8 +15,13 @@ const tabs = [
   "cancelled",
 ];
 
-export default async function BookingsPage({ searchParams }: { searchParams: any }) {
-  const status = (searchParams?.status as string) || "all";
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const sp = await searchParams; 
+  const status = (sp?.status ?? "all").toString();
 
   const res = await getMyBookings(status).catch(() => ({ items: [] }));
   const items = res.items || [];
@@ -36,9 +42,10 @@ export default async function BookingsPage({ searchParams }: { searchParams: any
 
         <div className="mt-4 flex flex-wrap gap-2">
           {tabs.map((t) => (
-            <a
+            <Link
               key={t}
-              href={`/client/dashboard/bookings?status=${t}`}
+              href={`/client/dashboard/bookings?status=${encodeURIComponent(t)}`}
+              prefetch={false}
               className={[
                 "rounded-full px-4 py-2 text-sm font-semibold transition",
                 t === status
@@ -47,7 +54,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: any
               ].join(" ")}
             >
               {t.replaceAll("_", " ")}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

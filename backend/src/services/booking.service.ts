@@ -6,6 +6,7 @@ import { UserRepository } from "../repositories/user.repository";
 import { Types } from "mongoose";
 import { BookingModel } from "../models/booking.model";
 import { RatingModel } from "../models/rating.model";
+import { NotificationModel } from "../models/notification.model";
 
 export class BookingService {
   constructor(
@@ -28,7 +29,6 @@ export class BookingService {
     }
   }
 
-  // ✅ helper: safely convert string ids -> ObjectIds
   private toObjectIds(ids: string[]) {
     const out: Types.ObjectId[] = [];
     for (const id of ids) {
@@ -41,7 +41,6 @@ export class BookingService {
     return out;
   }
 
-  // ✅ helper: compute stats for many clients (same idea as ClientService)
   private async getClientStatsMap(clientIds: string[]) {
     const oids = this.toObjectIds(clientIds);
     if (oids.length === 0) return new Map<string, { ratingAvg: number; ratingCount: number; completedBookings: number }>();
@@ -122,17 +121,13 @@ export class BookingService {
     return this.repo.listForClient(clientId, status);
   }
 
-  /**
-   * ✅ UPDATED: adds client ratingAvg / ratingCount / completedBookings
-   * without changing your repo populate or your UI.
-   */
   async listProviderBookings(providerId: string, role: string, status?: string) {
     if (role !== "provider") throw new HttpError(403, "Only providers can view their bookings");
 
     const items: any[] = (await this.repo.listForProvider(providerId, status)) as any[];
     if (!Array.isArray(items) || items.length === 0) return items;
 
-    // collect client ids
+
     const clientIds = items
       .map((b: any) => String(b?.clientId?._id ?? b?.clientId ?? ""))
       .filter(Boolean);
@@ -140,7 +135,7 @@ export class BookingService {
     const uniqueClientIds = Array.from(new Set(clientIds));
     const statsMap = await this.getClientStatsMap(uniqueClientIds);
 
-    // inject stats into populated clientId object
+
     return items.map((b: any) => {
       const c = b?.clientId;
       if (!c) return b;
@@ -387,5 +382,297 @@ export class BookingService {
     }
 
     return updated;
+  }
+    // =========================
+  // ADMIN HELPERS
+  // =========================
+  private async getProviderStatsMap(providerIds: string[]) {
+    const oids = this.toObjectIds(providerIds);
+    if (oids.length === 0)
+      return new Map<
+        string,
+        { ratingAvg: number; ratingCount: number; completedBookings: number }
+      >();
+
+    const [completedAgg, ratingAgg] = await Promise.all([
+      BookingModel.aggregate([
+        { $match: { providerId: { $in: oids }, status: "completed" } },
+        { $group: { _id: "$providerId", completedBookings: { $sum: 1 } } },
+      ]),
+      RatingModel.aggregate([
+        { $match: { rateeRole: "provider", rateeId: { $in: oids } } },
+        {
+          $group: {
+            _id: "$rateeId",
+            ratingAvg: { $avg: "$stars" },
+            ratingCount: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const completedById = new Map<string, number>(
+      (completedAgg ?? []).map((x: any) => [String(x._id), Number(x.completedBookings ?? 0)])
+    );
+
+    const ratingById = new Map<string, { ratingAvg: number; ratingCount: number }>(
+      (ratingAgg ?? []).map((x: any) => [
+        String(x._id),
+        { ratingAvg: Number(x.ratingAvg ?? 0), ratingCount: Number(x.ratingCount ?? 0) },
+      ])
+    );
+
+    const out = new Map<
+      string,
+      { ratingAvg: number; ratingCount: number; completedBookings: number }
+    >();
+
+    for (const oid of oids) {
+      const id = String(oid);
+      const r = ratingById.get(id) ?? { ratingAvg: 0, ratingCount: 0 };
+      const completedBookings = completedById.get(id) ?? 0;
+
+      out.set(id, { ratingAvg: r.ratingAvg, ratingCount: r.ratingCount, completedBookings });
+    }
+
+    return out;
+  }
+
+  private adminMapBooking(b: any, clientStats: any, providerStats: any) {
+    const client = b?.clientId ? { ...b.clientId } : null;
+    const provider = b?.providerId ? { ...b.providerId } : null;
+    const service = b?.serviceId ? { ...b.serviceId } : null;
+
+    const clientId = client?._id ? String(client._id) : "";
+    const providerId = provider?._id ? String(provider._id) : "";
+
+    const cStats = clientId ? clientStats.get(clientId) : null;
+    const pStats = providerId ? providerStats.get(providerId) : null;
+
+    const out = {
+      id: String(b?._id ?? ""),
+      status: String(b?.status ?? ""),
+      scheduledAt: b?.scheduledAt ?? null,
+      note: b?.note ?? "",
+      addressText: b?.addressText ?? "",
+      price: Number(b?.price ?? 0),
+      paymentStatus: String(b?.paymentStatus ?? "unpaid"),
+
+      service: service
+        ? {
+            id: String(service._id ?? ""),
+            name: service.name ?? "Service",
+            slug: service.slug ?? service.serviceSlug ?? undefined,
+            imageUrl: service.imageUrl ?? service.iconUrl ?? undefined,
+          }
+        : null,
+
+      client: client
+        ? {
+            id: String(client._id ?? ""),
+            firstName: client.firstName ?? "",
+            lastName: client.lastName ?? "",
+            email: client.email ?? "",
+            phone: client.phone ?? "",
+            avatarUrl: client.avatarUrl ?? "",
+            ratingAvg: Number(cStats?.ratingAvg ?? 0),
+            ratingCount: Number(cStats?.ratingCount ?? 0),
+            completedBookings: Number(cStats?.completedBookings ?? 0),
+          }
+        : null,
+
+      provider: provider
+        ? {
+            id: String(provider._id ?? ""),
+            firstName: provider.firstName ?? "",
+            lastName: provider.lastName ?? "",
+            email: provider.email ?? "",
+            phone: provider.phone ?? "",
+            avatarUrl: provider.avatarUrl ?? "",
+            profession: provider.profession ?? "",
+            serviceSlug: provider.serviceSlug ?? "",
+            ratingAvg: Number(pStats?.ratingAvg ?? 0),
+            ratingCount: Number(pStats?.ratingCount ?? 0),
+            completedBookings: Number(pStats?.completedBookings ?? 0),
+          }
+        : null,
+    };
+
+    return out;
+  }
+
+  async adminList(
+    role: string,
+    opts: {
+      status?: string;
+      q?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    if (role !== "admin") throw new HttpError(403, "Admin only");
+
+    const status = String(opts.status ?? "all").toLowerCase();
+    const q = String(opts.q ?? "").trim().toLowerCase();
+
+    const page = Number.isFinite(opts.page as any) && (opts.page as any) > 0 ? (opts.page as any) : 1;
+    const limit =
+      Number.isFinite(opts.limit as any) && (opts.limit as any) > 0 ? (opts.limit as any) : 20;
+
+    const filter: any = {};
+    if (status && status !== "all") filter.status = status;
+
+    if (opts.dateFrom || opts.dateTo) {
+      filter.scheduledAt = {};
+      if (opts.dateFrom) filter.scheduledAt.$gte = opts.dateFrom;
+      if (opts.dateTo) filter.scheduledAt.$lte = opts.dateTo;
+    }
+
+
+    const raw: any[] = await BookingModel.find(filter)
+      .populate("clientId", "firstName lastName email phone avatarUrl role")
+      .populate("providerId", "firstName lastName email phone avatarUrl role profession serviceSlug")
+      .populate("serviceId", "name slug imageUrl iconUrl")
+      .sort({ createdAt: -1 })
+      .lean();
+
+
+    const searched = !q
+      ? raw
+      : raw.filter((b) => {
+          const c = b?.clientId ?? {};
+          const p = b?.providerId ?? {};
+          const s = b?.serviceId ?? {};
+          const text = [
+            `${c.firstName ?? ""} ${c.lastName ?? ""}`,
+            c.email ?? "",
+            c.phone ?? "",
+            `${p.firstName ?? ""} ${p.lastName ?? ""}`,
+            p.email ?? "",
+            p.phone ?? "",
+            s.name ?? "",
+            b.status ?? "",
+            b.addressText ?? "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          return text.includes(q);
+        });
+
+
+    const total = searched.length;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const slice = searched.slice(start, end);
+
+    const clientIds = Array.from(
+      new Set(slice.map((b) => String(b?.clientId?._id ?? "")).filter(Boolean))
+    );
+    const providerIds = Array.from(
+      new Set(slice.map((b) => String(b?.providerId?._id ?? "")).filter(Boolean))
+    );
+
+    const [clientStats, providerStats] = await Promise.all([
+      this.getClientStatsMap(clientIds),
+      this.getProviderStatsMap(providerIds),
+    ]);
+
+    const items = slice.map((b) => this.adminMapBooking(b, clientStats, providerStats));
+
+    return {
+      items,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async adminGet(role: string, bookingId: string) {
+    if (role !== "admin") throw new HttpError(403, "Admin only");
+
+    const b: any = await BookingModel.findById(bookingId)
+      .populate("clientId", "firstName lastName email phone avatarUrl role")
+      .populate("providerId", "firstName lastName email phone avatarUrl role profession serviceSlug")
+      .populate("serviceId", "name slug imageUrl iconUrl")
+      .lean();
+
+    if (!b) throw new HttpError(404, "Booking not found");
+
+    const clientId = String(b?.clientId?._id ?? "");
+    const providerId = String(b?.providerId?._id ?? "");
+
+    const [clientStats, providerStats] = await Promise.all([
+      this.getClientStatsMap(clientId ? [clientId] : []),
+      this.getProviderStatsMap(providerId ? [providerId] : []),
+    ]);
+
+    return this.adminMapBooking(b, clientStats, providerStats);
+  }
+
+    async adminCancel(role: string, bookingId: string, reason?: string) {
+    if (role !== "admin") throw new HttpError(403, "Admin only");
+
+    const b: any = await this.repo.findById(bookingId);
+    if (!b) throw new HttpError(404, "Booking not found");
+
+    if (String(b.status) === "completed") {
+      throw new HttpError(400, "Cannot cancel completed booking");
+    }
+
+    const updated = await this.repo.updateById(bookingId, {
+      status: "cancelled",
+      cancellationReason: reason ?? "Cancelled by admin",
+    });
+
+    const clientId = String(b.clientId?._id ?? b.clientId ?? "");
+    const providerId = String(b.providerId?._id ?? b.providerId ?? "");
+
+    const message = reason?.trim()
+      ? `Admin cancelled this booking. Reason: ${reason.trim()}`
+      : "Admin cancelled this booking.";
+
+    if (clientId) {
+      await this.notifications.create({
+        userId: clientId,
+        type: "booking_status_changed",
+        title: "Booking cancelled",
+        message,
+        bookingId: b._id,
+        isRead: false,
+        meta: { by: "admin" },
+      });
+    }
+
+    if (providerId) {
+      await this.notifications.create({
+        userId: providerId,
+        type: "booking_status_changed",
+        title: "Booking cancelled",
+        message,
+        bookingId: b._id,
+        isRead: false,
+        meta: { by: "admin" },
+      });
+    }
+
+    return updated;
+  }
+
+  async adminDelete(role: string, bookingId: string) {
+    if (role !== "admin") throw new HttpError(403, "Admin only");
+
+    const b: any = await this.repo.findById(bookingId);
+    if (!b) throw new HttpError(404, "Booking not found");
+
+    await BookingModel.deleteOne({ _id: bookingId });
+
+    await NotificationModel.deleteMany({ bookingId });
+
+    await RatingModel.deleteMany({ bookingId });
+
+    return { ok: true, deletedId: bookingId };
   }
 }

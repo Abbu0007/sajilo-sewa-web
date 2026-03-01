@@ -5,7 +5,6 @@ import { adminMiddleware } from "../middlewares/admin.middleware";
 
 const router = Router();
 
-// Admin create service
 router.post("/", authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
     const { name, slug, icon, basePriceFrom, status } = req.body;

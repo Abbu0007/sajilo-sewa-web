@@ -1,5 +1,5 @@
 export default function StatusPill({ status }: { status: string }) {
-  const s = (status || "pending").toString();
+  const s = (status || "pending").toString().trim().toLowerCase();
 
   const map: Record<string, string> = {
     pending: "bg-amber-100 text-amber-800",
