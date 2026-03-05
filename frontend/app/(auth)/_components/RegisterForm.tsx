@@ -13,6 +13,7 @@ import { registerAction } from "@/lib/actions/auth-actions";
 import { http } from "@/lib/api/axios";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 
+//Mail icon for email input
 function MailIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -21,6 +22,8 @@ function MailIcon() {
     </svg>
   );
 }
+
+//Phone icon for phone input
 function PhoneIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -32,6 +35,8 @@ function PhoneIcon() {
     </svg>
   );
 }
+
+//Lock icon for password inputs
 function LockIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -41,6 +46,7 @@ function LockIcon() {
   );
 }
 
+//Service item type for dropdown
 type ServiceItem = {
   _id: string;
   name: string;
@@ -48,16 +54,22 @@ type ServiceItem = {
   status?: "active" | "inactive";
 };
 
+//Register form component
 export default function RegisterForm() {
   const router = useRouter();
+
+  //API error message state
   const [apiError, setApiError] = useState<string | null>(null);
 
+  //Role toggle state for UI
   const [roleUI, setRoleUI] = useState<"client" | "provider">("client");
 
+  //Services dropdown state
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesError, setServicesError] = useState<string | null>(null);
 
+  //React Hook Form setup with Zod validation
   const {
     register,
     setValue,
@@ -75,16 +87,17 @@ export default function RegisterForm() {
       confirmPassword: "",
       role: "client",
       profession: "",
-      serviceSlug: "", // ✅ NEW
+      serviceSlug: "",
     },
   });
 
+  //Initialize role UI from form value
   useEffect(() => {
     const initial = getValues("role");
     setRoleUI(initial === "provider" ? "provider" : "client");
   }, [getValues]);
 
-  // ✅ load services for dropdown
+  //Load services for provider dropdown
   useEffect(() => {
     let cancelled = false;
 
@@ -93,8 +106,12 @@ export default function RegisterForm() {
         setServicesLoading(true);
         setServicesError(null);
 
+        //Fetch service categories
         const res = await http.get(ENDPOINTS.services);
+
         const items: ServiceItem[] = Array.isArray(res.data?.items) ? res.data.items : [];
+
+        //Filter only active services
         const activeOnly = items.filter((s) => (s.status ?? "active") === "active");
 
         if (!cancelled) setServices(activeOnly);
@@ -111,11 +128,13 @@ export default function RegisterForm() {
     };
   }, []);
 
+  //Prepare select options for services dropdown
   const serviceOptions = useMemo(
     () => services.map((s) => ({ value: s.slug, label: s.name })),
     [services]
   );
 
+  //Set role and reset provider-only fields when switching to client
   const setRole = (value: "client" | "provider") => {
     setRoleUI(value);
 
@@ -127,6 +146,7 @@ export default function RegisterForm() {
     }
   };
 
+  //Role toggle button renderer
   const roleBtn = (value: "client" | "provider", label: string) => {
     const active = roleUI === value;
     return (
@@ -145,9 +165,11 @@ export default function RegisterForm() {
     );
   };
 
+  //Handle register form submission
   const onSubmit = async (values: RegisterData) => {
     setApiError(null);
     try {
+      //Call register API with role based fields
       await registerAction({
         firstName: values.firstName,
         lastName: values.lastName,
@@ -155,10 +177,11 @@ export default function RegisterForm() {
         phone: values.phone,
         role: values.role,
         profession: values.role === "provider" ? values.profession : undefined,
-        serviceSlug: values.role === "provider" ? values.serviceSlug : undefined, // ✅ NEW
+        serviceSlug: values.role === "provider" ? values.serviceSlug : undefined,
         password: values.password,
       });
 
+      //Redirect to login after successful register
       router.push("/login");
     } catch (e: any) {
       setApiError(e?.message ?? "Register failed");
@@ -166,6 +189,7 @@ export default function RegisterForm() {
   };
 
   return (
+    //Register form wrapper
     <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
       <input type="hidden" {...register("role")} />
 
@@ -209,7 +233,6 @@ export default function RegisterForm() {
         error={errors.password?.message}
         registration={register("password")}
       />
-
       <TextInput
         label="Confirm Password"
         placeholder="Confirm password"
@@ -229,7 +252,6 @@ export default function RegisterForm() {
 
       {roleUI === "provider" && (
         <>
-          {/* ✅ Service dropdown */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-slate-700">Service Category</label>
 
@@ -246,6 +268,7 @@ export default function RegisterForm() {
               <option value="" disabled>
                 {servicesLoading ? "Loading services..." : "Select a service"}
               </option>
+
               {serviceOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -254,7 +277,10 @@ export default function RegisterForm() {
             </select>
 
             {servicesError && <p className="text-xs text-red-600">{servicesError}</p>}
-            {errors.serviceSlug?.message && <p className="text-xs text-red-600">{errors.serviceSlug.message}</p>}
+
+            {errors.serviceSlug?.message && (
+              <p className="text-xs text-red-600">{errors.serviceSlug.message}</p>
+            )}
           </div>
 
           <TextInput

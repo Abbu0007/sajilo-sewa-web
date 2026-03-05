@@ -2,9 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import { BookingService } from "../services/booking.service";
 import { createBookingDto, cancelBookingDto, confirmPaymentDto } from "../dtos/booking.dto";
 
+// Booking controller
 export class BookingController {
   constructor(private service: BookingService) {}
 
+  // Create booking
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
@@ -16,6 +18,7 @@ export class BookingController {
     }
   };
 
+  // List client bookings
   listMine = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
@@ -27,6 +30,7 @@ export class BookingController {
     }
   };
 
+  // Get booking details
   details = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
@@ -38,6 +42,7 @@ export class BookingController {
     }
   };
 
+  // Cancel booking
   cancel = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
@@ -49,17 +54,19 @@ export class BookingController {
       next(e);
     }
   };
+
+  // Confirm payment
   confirmPayment = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = (req as any).user;
-    const bookingId = req.params.bookingId;
+    try {
+      const user = (req as any).user;
+      const bookingId = req.params.bookingId;
 
-    confirmPaymentDto.parse({ confirm: true });
+      confirmPaymentDto.parse({ confirm: true });
 
-    const booking = await this.service.confirmPayment(user.id, user.role, bookingId);
-    res.json({ booking });
-  } catch (e) {
-    next(e);
-  }
-};
+      const booking = await this.service.confirmPayment(user.id, user.role, bookingId);
+      res.json({ booking });
+    } catch (e) {
+      next(e);
+    }
+  };
 }

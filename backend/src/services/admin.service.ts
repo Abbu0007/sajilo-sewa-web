@@ -6,9 +6,11 @@ import { Types } from "mongoose";
 import { BookingModel } from "../models/booking.model";
 import { RatingModel } from "../models/rating.model";
 
+// Admin service
 export class AdminService {
   constructor(private repo: UserRepository) {}
 
+  // Convert string ids to object ids
   private toObjectIds(ids: string[]) {
     const out: Types.ObjectId[] = [];
     for (const id of ids) {
@@ -19,6 +21,7 @@ export class AdminService {
     return out;
   }
 
+  // Build rating stats map
   private async getRatingMap(userIds: string[], rateeRole: "client" | "provider") {
     const oids = this.toObjectIds(userIds);
     const out = new Map<string, { ratingAvg: number; ratingCount: number }>();
@@ -39,6 +42,7 @@ export class AdminService {
     return out;
   }
 
+  // Build completed bookings map
   private async getCompletedMap(userIds: string[], field: "clientId" | "providerId") {
     const oids = this.toObjectIds(userIds);
     const out = new Map<string, number>();
@@ -56,6 +60,7 @@ export class AdminService {
     return out;
   }
 
+  // Convert db user to public user
   private toPublicUser(
     user: any,
     stats?: { ratingAvg?: number; ratingCount?: number; completedBookings?: number }
@@ -76,6 +81,7 @@ export class AdminService {
     } as any;
   }
 
+  // Create user by admin
   async createUser(payload: {
     firstName: string;
     lastName: string;
@@ -106,6 +112,7 @@ export class AdminService {
     return { user: this.toPublicUser(user) };
   }
 
+  // List users with stats
   async listUsers() {
     const users = await this.repo.findAll();
 
@@ -155,6 +162,7 @@ export class AdminService {
     return { users: out };
   }
 
+  // Get user by id with stats
   async getUserById(id: string) {
     const user = await this.repo.findById(id);
     if (!user) throw new HttpError(404, "User not found");
@@ -177,6 +185,7 @@ export class AdminService {
     return { user: this.toPublicUser(user, { ratingAvg: r.ratingAvg, ratingCount: r.ratingCount, completedBookings: c }) };
   }
 
+  // Update user by id
   async updateUserById(
     id: string,
     payload: {
@@ -193,6 +202,7 @@ export class AdminService {
   ) {
     let passwordHash: string | undefined;
 
+    // Hash password if provided
     if (payload.password) {
       passwordHash = await bcrypt.hash(payload.password, 10);
     }
@@ -207,6 +217,7 @@ export class AdminService {
     return { user: this.toPublicUser(updated) };
   }
 
+  // Delete user by id
   async deleteUserById(id: string) {
     const deleted = await this.repo.deleteById(id);
     if (!deleted) throw new HttpError(404, "User not found");

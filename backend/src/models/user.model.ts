@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: "" },
     avgRating: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
+    emailVerified: { type: Boolean, default: false },
+    emailOtpHash: { type: String, default: "" },
+    emailOtpExpiresAt: { type: Date, default: null },
+    resetOtpHash: { type: String, default: "" },
+    resetOtpExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

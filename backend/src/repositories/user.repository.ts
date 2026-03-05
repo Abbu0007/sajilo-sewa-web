@@ -19,6 +19,7 @@ export class UserRepository {
     serviceSlug?: string;
     passwordHash: string;
     avatarUrl?: string;
+    emailVerified?: boolean; // ✅ NEW (so admin can be verified)
   }) {
     const user = await UserModel.create(data);
     return user;
@@ -50,12 +51,14 @@ export class UserRepository {
     return UserModel.find().sort({ createdAt: -1 }).exec();
   }
 
-    async findProvidersByServiceSlug(serviceSlug: string) {
+  async findProvidersByServiceSlug(serviceSlug: string) {
     return UserModel.find({
       role: "provider",
       serviceSlug: serviceSlug,
     })
-      .select("firstName lastName email phone avatarUrl role profession serviceSlug avgRating ratingCount")
+      .select(
+        "firstName lastName email phone avatarUrl role profession serviceSlug avgRating ratingCount"
+      )
       .exec();
   }
 
@@ -97,10 +100,7 @@ export class UserRepository {
       .exec();
   }
 
-    async updateRatingStats(
-    userId: string,
-    stats: { avgRating: number; ratingCount: number }
-  ) {
+  async updateRatingStats(userId: string, stats: { avgRating: number; ratingCount: number }) {
     return UserModel.findByIdAndUpdate(
       userId,
       {
@@ -109,6 +109,32 @@ export class UserRepository {
           ratingCount: stats.ratingCount,
         },
       },
+      { new: true }
+    ).exec();
+  }
+
+  // ✅ Email verification OTP
+  async setEmailOtp(email: string, data: { emailOtpHash: string; emailOtpExpiresAt: Date }) {
+    return UserModel.findOneAndUpdate({ email }, { $set: data }, { new: true }).exec();
+  }
+
+  async clearEmailOtp(email: string) {
+    return UserModel.findOneAndUpdate(
+      { email },
+      { $set: { emailOtpHash: "", emailOtpExpiresAt: null } },
+      { new: true }
+    ).exec();
+  }
+
+  // ✅ Password reset OTP
+  async setResetOtp(email: string, data: { resetOtpHash: string; resetOtpExpiresAt: Date }) {
+    return UserModel.findOneAndUpdate({ email }, { $set: data }, { new: true }).exec();
+  }
+
+  async clearResetOtp(email: string) {
+    return UserModel.findOneAndUpdate(
+      { email },
+      { $set: { resetOtpHash: "", resetOtpExpiresAt: null } },
       { new: true }
     ).exec();
   }

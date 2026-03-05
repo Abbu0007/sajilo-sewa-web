@@ -5,6 +5,7 @@ import { adminMiddleware } from "../middlewares/admin.middleware";
 
 const router = Router();
 
+// Create service
 router.post("/", authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
     const { name, slug, icon, basePriceFrom, status } = req.body;
@@ -23,7 +24,7 @@ router.post("/", authMiddleware, adminMiddleware, async (req, res, next) => {
   }
 });
 
-// Admin list all 
+// List all services for admin
 router.get("/", authMiddleware, adminMiddleware, async (_req, res, next) => {
   try {
     const items = await ServiceModel.find().sort({ createdAt: -1 }).lean();

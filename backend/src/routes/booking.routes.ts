@@ -10,13 +10,14 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
+// Initialize repositories
 const bookingRepo = new BookingRepository();
-
 const notifRepo = new NotificationRepository();
-const notifService = new NotificationService(notifRepo);
-
 const providerProfileRepo = new ProviderProfileRepository();
 const userRepo = new UserRepository();
+
+// Initialize services
+const notifService = new NotificationService(notifRepo);
 
 const bookingService = new BookingService(
   bookingRepo,
@@ -25,14 +26,22 @@ const bookingService = new BookingService(
   userRepo
 );
 
+// Initialize controller
 const controller = new BookingController(bookingService);
 
+// Create booking
 router.post("/", authMiddleware, controller.create);
+
+// List client bookings
 router.get("/mine", authMiddleware, controller.listMine);
+
+// Get booking details
 router.get("/:bookingId", authMiddleware, controller.details);
+
+// Cancel booking
 router.patch("/:bookingId/cancel", authMiddleware, controller.cancel);
 
-/* 🔥 NEW ROUTE */
+// Confirm payment
 router.patch(
   "/:bookingId/confirm-payment",
   authMiddleware,

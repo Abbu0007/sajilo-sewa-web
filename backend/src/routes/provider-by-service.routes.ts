@@ -36,8 +36,6 @@ router.get("/:serviceSlug", async (req, res, next) => {
         avatarUrl: u.avatarUrl ?? "",
         profession: u.profession ?? prof?.profession ?? "",
         serviceSlug: u.serviceSlug ?? serviceSlug,
-
-        // ✅ used by frontend normalizeProvider()
         avgRating: typeof prof?.ratingAvg === "number" ? prof.ratingAvg : 0,
         ratingCount: typeof prof?.ratingCount === "number" ? prof.ratingCount : 0,
         completedJobs: typeof prof?.completedJobs === "number" ? prof.completedJobs : 0,

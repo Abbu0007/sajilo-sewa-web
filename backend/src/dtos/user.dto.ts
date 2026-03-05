@@ -40,3 +40,30 @@ export const loginDto = z.object({
 });
 
 export type LoginDto = z.infer<typeof loginDto>;
+
+//verify email
+export const verifyEmailDto = z.object({
+  email: z.string().email("Invalid email"),
+  otp: z.string().min(4, "OTP is required").max(8, "OTP is too long"),
+});
+export type VerifyEmailDto = z.infer<typeof verifyEmailDto>;
+
+//  resend verification
+export const resendVerificationDto = z.object({
+  email: z.string().email("Invalid email"),
+});
+export type ResendVerificationDto = z.infer<typeof resendVerificationDto>;
+
+// forgot password
+export const forgotPasswordDto = z.object({
+  email: z.string().email("Invalid email"),
+});
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordDto>;
+
+//  reset password
+export const resetPasswordDto = z.object({
+  email: z.string().email("Invalid email"),
+  otp: z.string().min(4, "OTP is required").max(8, "OTP is too long"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+});
+export type ResetPasswordDto = z.infer<typeof resetPasswordDto>;

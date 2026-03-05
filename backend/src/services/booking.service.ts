@@ -8,6 +8,7 @@ import { BookingModel } from "../models/booking.model";
 import { RatingModel } from "../models/rating.model";
 import { NotificationModel } from "../models/notification.model";
 
+// Booking service
 export class BookingService {
   constructor(
     private repo: BookingRepository,
@@ -16,6 +17,7 @@ export class BookingService {
     private users: UserRepository
   ) {}
 
+  // Get user full name
   private async getFullName(userId: string): Promise<string | null> {
     try {
       const u: any = await this.users.findById(userId);
@@ -29,6 +31,7 @@ export class BookingService {
     }
   }
 
+  // Convert string ids to object ids
   private toObjectIds(ids: string[]) {
     const out: Types.ObjectId[] = [];
     for (const id of ids) {
@@ -41,6 +44,7 @@ export class BookingService {
     return out;
   }
 
+  // Build client stats map
   private async getClientStatsMap(clientIds: string[]) {
     const oids = this.toObjectIds(clientIds);
     if (oids.length === 0) return new Map<string, { ratingAvg: number; ratingCount: number; completedBookings: number }>();
@@ -84,6 +88,7 @@ export class BookingService {
     return out;
   }
 
+  // Create booking
   async createBooking(clientId: string, role: string, payload: any) {
     if (role !== "client") throw new HttpError(403, "Only clients can create bookings");
 
@@ -116,17 +121,18 @@ export class BookingService {
     return booking;
   }
 
+  // List client bookings
   async listClientBookings(clientId: string, role: string, status?: string) {
     if (role !== "client") throw new HttpError(403, "Only clients can view their bookings");
     return this.repo.listForClient(clientId, status);
   }
 
+  // List provider bookings
   async listProviderBookings(providerId: string, role: string, status?: string) {
     if (role !== "provider") throw new HttpError(403, "Only providers can view their bookings");
 
     const items: any[] = (await this.repo.listForProvider(providerId, status)) as any[];
     if (!Array.isArray(items) || items.length === 0) return items;
-
 
     const clientIds = items
       .map((b: any) => String(b?.clientId?._id ?? b?.clientId ?? ""))
@@ -134,7 +140,6 @@ export class BookingService {
 
     const uniqueClientIds = Array.from(new Set(clientIds));
     const statsMap = await this.getClientStatsMap(uniqueClientIds);
-
 
     return items.map((b: any) => {
       const c = b?.clientId;
@@ -155,6 +160,7 @@ export class BookingService {
     });
   }
 
+  // Get booking details
   async getBookingDetails(requesterId: string, role: string, bookingId: string) {
     const b: any = await this.repo.findById(bookingId);
     if (!b) throw new HttpError(404, "Booking not found");
@@ -167,6 +173,7 @@ export class BookingService {
     return b;
   }
 
+  // Client cancel booking
   async clientCancel(clientId: string, role: string, bookingId: string, reason?: string) {
     if (role !== "client") throw new HttpError(403, "Only clients can cancel bookings");
 
@@ -195,6 +202,7 @@ export class BookingService {
     return updated;
   }
 
+  // Provider accept booking
   async providerAccept(providerId: string, role: string, bookingId: string) {
     if (role !== "provider") throw new HttpError(403, "Only providers can accept bookings");
 
@@ -219,6 +227,7 @@ export class BookingService {
     return updated;
   }
 
+  // Provider reject booking
   async providerReject(providerId: string, role: string, bookingId: string, reason?: string) {
     if (role !== "provider") throw new HttpError(403, "Only providers can reject bookings");
 
@@ -246,6 +255,7 @@ export class BookingService {
     return updated;
   }
 
+  // Provider update booking status
   async providerUpdateStatus(
     providerId: string,
     role: string,
@@ -298,12 +308,14 @@ export class BookingService {
     return updated;
   }
 
+  // Get provider earnings
   async providerGetEarnings(providerId: string, role: string) {
     if (role !== "provider") throw new HttpError(403, "Provider only");
     const total = await this.repo.sumProviderEarnings(providerId);
     return { total };
   }
 
+  // Confirm payment and complete booking
   async confirmPayment(clientId: string, role: string, bookingId: string) {
     if (role !== "client") throw new HttpError(403, "Only clients can confirm payment");
 
@@ -333,6 +345,7 @@ export class BookingService {
     const providerName = (await this.getFullName(providerUserId)) ?? "your provider";
     const clientName = (await this.getFullName(clientUserId)) ?? "your client";
 
+    // Notify provider about payment confirmation
     try {
       await this.notifications.create({
         userId: providerUserId,
@@ -350,6 +363,7 @@ export class BookingService {
       console.error("Payment notification failed:", e);
     }
 
+    // Update provider completed jobs
     try {
       const completedCount = await this.repo.countForProvider(providerUserId, "completed");
       await this.providerProfiles.upsertByUserId(providerUserId, { completedJobs: completedCount });
@@ -357,6 +371,7 @@ export class BookingService {
       console.error("Provider completedJobs update failed:", e);
     }
 
+    // Send rating requests
     try {
       await this.notifications.create({
         userId: clientUserId,
@@ -383,9 +398,8 @@ export class BookingService {
 
     return updated;
   }
-    // =========================
-  // ADMIN HELPERS
-  // =========================
+
+  // Build provider stats map
   private async getProviderStatsMap(providerIds: string[]) {
     const oids = this.toObjectIds(providerIds);
     if (oids.length === 0)
@@ -438,6 +452,7 @@ export class BookingService {
     return out;
   }
 
+  // Map booking for admin response
   private adminMapBooking(b: any, clientStats: any, providerStats: any) {
     const client = b?.clientId ? { ...b.clientId } : null;
     const provider = b?.providerId ? { ...b.providerId } : null;
@@ -501,6 +516,7 @@ export class BookingService {
     return out;
   }
 
+  // Admin list bookings
   async adminList(
     role: string,
     opts: {
@@ -524,12 +540,12 @@ export class BookingService {
     const filter: any = {};
     if (status && status !== "all") filter.status = status;
 
+    // Apply date range filter
     if (opts.dateFrom || opts.dateTo) {
       filter.scheduledAt = {};
       if (opts.dateFrom) filter.scheduledAt.$gte = opts.dateFrom;
       if (opts.dateTo) filter.scheduledAt.$lte = opts.dateTo;
     }
-
 
     const raw: any[] = await BookingModel.find(filter)
       .populate("clientId", "firstName lastName email phone avatarUrl role")
@@ -538,7 +554,7 @@ export class BookingService {
       .sort({ createdAt: -1 })
       .lean();
 
-
+    // Apply search filter
     const searched = !q
       ? raw
       : raw.filter((b) => {
@@ -560,7 +576,6 @@ export class BookingService {
             .toLowerCase();
           return text.includes(q);
         });
-
 
     const total = searched.length;
     const start = (page - 1) * limit;
@@ -590,6 +605,7 @@ export class BookingService {
     };
   }
 
+  // Admin get booking details
   async adminGet(role: string, bookingId: string) {
     if (role !== "admin") throw new HttpError(403, "Admin only");
 
@@ -612,7 +628,8 @@ export class BookingService {
     return this.adminMapBooking(b, clientStats, providerStats);
   }
 
-    async adminCancel(role: string, bookingId: string, reason?: string) {
+  // Admin cancel booking
+  async adminCancel(role: string, bookingId: string, reason?: string) {
     if (role !== "admin") throw new HttpError(403, "Admin only");
 
     const b: any = await this.repo.findById(bookingId);
@@ -661,6 +678,7 @@ export class BookingService {
     return updated;
   }
 
+  // Admin delete booking and related data
   async adminDelete(role: string, bookingId: string) {
     if (role !== "admin") throw new HttpError(403, "Admin only");
 

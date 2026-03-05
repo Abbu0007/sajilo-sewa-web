@@ -39,7 +39,11 @@ function EyeIcon({ open }: { open: boolean }) {
             stroke="currentColor"
             strokeWidth="2"
           />
-          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
         </>
       ) : (
         <>
@@ -59,6 +63,7 @@ export default function LoginForm() {
   const router = useRouter();
   const [showPw, setShowPw] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [lastEmail, setLastEmail] = useState("");
 
   const {
     register,
@@ -71,6 +76,7 @@ export default function LoginForm() {
 
   const onSubmit = async (values: LoginData) => {
     setApiError(null);
+    setLastEmail(values.email.trim());
 
     try {
       const data = await loginAction({
@@ -78,7 +84,6 @@ export default function LoginForm() {
         password: values.password,
       });
 
-      // ✅ Safety check
       if (!data?.token || !data?.user) {
         setApiError("Invalid login response");
         return;
@@ -86,14 +91,17 @@ export default function LoginForm() {
 
       const role = data.user.role;
 
-      // ✅ role-based navigation (ADMIN added)
       if (role === "admin") router.replace("/admin/dashboard");
       else if (role === "provider") router.replace("/provider/dashboard");
       else router.replace("/client/dashboard");
     } catch (e: any) {
-      setApiError(e?.message ?? "Login failed");
+      const msg = e?.message ?? "Login failed";
+      setApiError(msg);
     }
   };
+
+  const showVerifyLink =
+    !!apiError && apiError.toLowerCase().includes("email not verified");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
@@ -112,7 +120,11 @@ export default function LoginForm() {
         type={showPw ? "text" : "password"}
         leftIcon={<LockIcon />}
         rightIcon={
-          <button type="button" onClick={() => setShowPw((v) => !v)}>
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? "Hide password" : "Show password"}
+          >
             <EyeIcon open={showPw} />
           </button>
         }
@@ -120,17 +132,34 @@ export default function LoginForm() {
         registration={register("password")}
       />
 
-      {apiError && <p className="text-xs text-red-600">{apiError}</p>}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/forgot-password"
+          className="text-xs font-medium text-blue-600 hover:underline"
+        >
+          Forgot password?
+        </Link>
+
+        {showVerifyLink && (
+          <Link
+            href={`/verify-email?email=${encodeURIComponent(lastEmail || "")}`}
+            className="text-xs font-medium text-blue-600 hover:underline"
+          >
+            Verify email
+          </Link>
+        )}
+      </div>
+
+      {apiError && (
+        <p className="text-xs text-red-600">{apiError}</p>
+      )}
 
       <PrimaryButton disabled={isSubmitting}>
         {isSubmitting ? "Signing In..." : "Sign In"}
       </PrimaryButton>
 
-      <div className="py-2 text-center text-xs text-slate-400">Or continue with</div>
-      <SocialButtons />
-
       <div className="pt-4 text-center text-xs text-slate-600">
-        Don&apos;t have an account?
+        Don't have an account?
         <div className="mt-2">
           <Link className="font-semibold text-blue-600 hover:underline" href="/register">
             Sign up here
